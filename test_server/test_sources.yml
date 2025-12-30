@@ -10,3 +10,14 @@ source:
       fields:
         - name: "title"
           selector: "/html/body/p[1]"
+  - name: "test_mix"
+    start: "http://localhost:8888/rss/feed.xml"
+    navigate:
+      - step: 1
+        selector: "link"
+      - step: 2
+        selector: "/html/body/p[3]/a"
+    extract:
+      fields:
+        - name: "title"
+          selector: "/html/body/p[1]"

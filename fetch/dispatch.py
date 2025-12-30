@@ -4,6 +4,9 @@ from lxml import html as lxml_html
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from pathlib import Path
+from datetime import datetime
+import json
 
 
 @dataclass
@@ -32,6 +35,15 @@ class SourceResult:
             result_dict[page_result.url] = fields_dict
 
         return {"source": self.source_name, "result": result_dict}
+
+    def save(self) -> None:
+        today = datetime.now().strftime("%Y-%m-%d")
+        output_dir = Path(f"data/raw/{today}")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        file_path = output_dir / f"{self.source_name}.json"
+        with open(file_path, "w") as f:
+            json.dump(self.to_json(), f, indent=2)
 
 
 class Navigate:
@@ -78,12 +90,15 @@ class Navigate:
         return [Nav(url=url, selector=template.selector) for url in urls]
 
     def navigate(self, nav: Nav) -> list[str]:
-        html = visit(url=nav.url)
-        relative_urls = self.navigate_select(html, nav.selector)
+        if ".xml" in nav.url:
+            pass
+        else:
+            doc = visit(url=nav.url)
+        relative_urls = self.navigate_select(doc, nav.selector)
         return [urljoin(nav.url, url) for url in relative_urls]
 
-    def navigate_select(self, html: str, selector: str) -> list:
-        tree = lxml_html.fromstring(html)
+    def navigate_select(self, doc: str, selector: str) -> list:
+        tree = lxml_html.fromstring(doc)
         return tree.xpath(selector)
 
 
@@ -108,7 +123,9 @@ class Dispatcher:
                     if result:
                         page_results.append(result)
 
-            self.results.append(SourceResult(source_name=job.name, results=page_results))
+            self.results.append(
+                SourceResult(source_name=job.name, results=page_results)
+            )
 
     def extract(self, job: Job, url: str) -> PageResult:
         html = visit(url=url)
