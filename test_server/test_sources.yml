@@ -1,0 +1,12 @@
+source:
+  - name: "test"
+    start: "http://localhost:8888/html/home.html"
+    navigate:
+      - step: 1
+        selector: "//ul/li/a/@href"
+      - step: 2
+        selector: "/html/body/p[3]/a/@href"
+    extract:
+      fields:
+        - name: "title"
+          selector: "/html/body/p[1]"
