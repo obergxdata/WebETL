@@ -9,26 +9,26 @@
 
     <item>
       <title>Article 1: Introduction to RSS Feeds</title>
-      <link>http://localhost:8888/article_1.html</link>
+      <link>http://localhost:8888/html/article_1.html</link>
       <description>RSS (Really Simple Syndication) is a web feed format used to publish frequently updated content. It allows users to stay informed about new content without having to manually visit websites.</description>
       <pubDate>Mon, 30 Dec 2025 10:00:00 GMT</pubDate>
-      <guid>http://localhost:8888/article_1.html</guid>
+      <guid>http://localhost:8888/html/article_1.html</guid>
     </item>
 
     <item>
       <title>Article 2: Understanding HTML Parsing</title>
-      <link>http://localhost:8888/article_2.html</link>
+      <link>http://localhost:8888/html/article_2.html</link>
       <description>HTML parsing is the process of analyzing HTML documents to extract structured data. Modern parsers can handle malformed HTML and provide a consistent DOM representation.</description>
       <pubDate>Mon, 30 Dec 2025 11:00:00 GMT</pubDate>
-      <guid>http://localhost:8888/article_2.html</guid>
+      <guid>http://localhost:8888/html/article_2.html</guid>
     </item>
 
     <item>
       <title>Article 3: Web Scraping Best Practices</title>
-      <link>http://localhost:8888/article_3.html</link>
+      <link>http://localhost:8888/html/article_3.html</link>
       <description>When scraping websites, it's important to be respectful and follow best practices. Always check robots.txt, rate-limit your requests, and handle errors gracefully.</description>
       <pubDate>Mon, 30 Dec 2025 12:00:00 GMT</pubDate>
-      <guid>http://localhost:8888/article_3.html</guid>
+      <guid>http://localhost:8888/html/article_3.html</guid>
     </item>
 
   </channel>

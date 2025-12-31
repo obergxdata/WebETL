@@ -1,5 +1,6 @@
 from job.gen_jobs import Source, Nav, Job
-from fetch.http import visit
+from fetch.http import visit_html
+from fetch.rss import visit_rss
 from lxml import html as lxml_html
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -87,19 +88,28 @@ class Navigate:
         return all_urls
 
     def build_next_navs(self, urls: list[str], template: Nav) -> list[Nav]:
-        return [Nav(url=url, selector=template.selector) for url in urls]
+        return [
+            Nav(url=url, selector=template.selector, ftype=template.ftype)
+            for url in urls
+        ]
 
     def navigate(self, nav: Nav) -> list[str]:
-        if ".xml" in nav.url:
-            pass
-        else:
-            doc = visit(url=nav.url)
-        relative_urls = self.navigate_select(doc, nav.selector)
+
+        if nav.ftype == "rss":
+            doc = visit_rss(url=nav.url)
+            relative_urls = self.select_rss(doc, nav.selector)
+        elif nav.ftype == "html":
+            doc = visit_html(url=nav.url)
+            relative_urls = self.select_html(doc, nav.selector)
+
         return [urljoin(nav.url, url) for url in relative_urls]
 
-    def navigate_select(self, doc: str, selector: str) -> list:
+    def select_html(self, doc: str, selector: str) -> list:
         tree = lxml_html.fromstring(doc)
         return tree.xpath(selector)
+
+    def select_rss(self, doc: str, selector: str) -> list:
+        return [entry.get(selector) for entry in doc.entries]
 
 
 class Dispatcher:
@@ -128,7 +138,7 @@ class Dispatcher:
             )
 
     def extract(self, job: Job, url: str) -> PageResult:
-        html = visit(url=url)
+        html = visit_html(url=url)
         tree = lxml_html.fromstring(html)
 
         extractions = []

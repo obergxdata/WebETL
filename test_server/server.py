@@ -8,6 +8,11 @@ import os
 from pathlib import Path
 
 
+class ReusableTCPServer(socketserver.TCPServer):
+    """TCPServer that allows address reuse to avoid 'Address already in use' errors."""
+    allow_reuse_address = True
+
+
 class TestServer:
     """Simple HTTP server for serving test content."""
 
@@ -32,7 +37,7 @@ class TestServer:
         else:
             handler = http.server.SimpleHTTPRequestHandler
 
-        self.httpd = socketserver.TCPServer(("", self.port), handler)
+        self.httpd = ReusableTCPServer(("", self.port), handler)
         return f"http://localhost:{self.port}"
 
     def start_background(self):

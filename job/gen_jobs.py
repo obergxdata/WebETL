@@ -21,6 +21,7 @@ class Job:
 @dataclass
 class Nav:
     selector: str
+    ftype: str
     url: str | None = None
 
 
@@ -46,9 +47,15 @@ class Source:
             navs = []
             for i, navigate in enumerate(source_conf["navigate"]):
                 if i == 0:
-                    nav = Nav(url=source_conf["start"], selector=navigate["selector"])
+                    nav = Nav(
+                        url=source_conf["start"],
+                        selector=navigate["selector"],
+                        ftype=navigate["ftype"],
+                    )
                 else:
-                    nav = Nav(url=None, selector=navigate["selector"])
+                    nav = Nav(
+                        url=None, selector=navigate["selector"], ftype=navigate["ftype"]
+                    )
 
                 navs.append(nav)
 

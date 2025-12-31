@@ -2,22 +2,27 @@ source:
   - name: "test"
     start: "http://localhost:8888/html/home.html"
     navigate:
-      - step: 1
+      - step: "first page"
         selector: "//ul/li/a/@href"
-      - step: 2
+        ftype: "html"
+      - step: "articles"
         selector: "/html/body/p[3]/a/@href"
+        ftype: "html"
     extract:
       fields:
         - name: "title"
-          selector: "/html/body/p[1]"
-  - name: "test_mix"
+          selector: "/html/body/h1"
+
+  - name: "test_rss_html"
     start: "http://localhost:8888/rss/feed.xml"
     navigate:
-      - step: 1
+      - step: "the feed"
         selector: "link"
-      - step: 2
-        selector: "/html/body/p[3]/a"
+        ftype: "rss"
+      - step: "the article"
+        selector: "/html/body/p[3]/a/@href"
+        ftype: "html"
     extract:
       fields:
         - name: "title"
-          selector: "/html/body/p[1]"
+          selector: "/html/body/h1"
