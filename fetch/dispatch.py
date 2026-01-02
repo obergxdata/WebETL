@@ -54,6 +54,11 @@ class Navigate:
 
     def start(self):
         for job in self.jobs:
+
+            if not job.nav:
+                job.urls = [job.start]
+                continue
+
             current_navs = [job.nav[0]]
 
             for step_index in range(len(job.nav)):
@@ -65,6 +70,7 @@ class Navigate:
     def process_navigation_step(
         self, job: Job, current_navs: list[Nav], step_index: int, is_final: bool
     ) -> list[Nav]:
+
         all_urls = self.navigate_all(current_navs)
 
         if is_final:
@@ -126,7 +132,12 @@ class Dispatcher:
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = []
                 for url in job.urls:
-                    futures.append(executor.submit(self.extract, job, url))
+                    if job.ftype == "html":
+                        extractor = self.html_extract
+                    elif job.ftype == "rss":
+                        extractor = self.rss_extract
+
+                    futures.append(executor.submit(extractor, job, url))
 
                 for future in as_completed(futures):
                     result = future.result()
@@ -137,7 +148,19 @@ class Dispatcher:
                 SourceResult(source_name=job.name, results=page_results)
             )
 
-    def extract(self, job: Job, url: str) -> PageResult:
+    def rss_extract(self, job: Job, url: str) -> PageResult:
+        rss = visit_rss(url=url)
+
+        extractions = []
+        for entry in rss.entries:
+            for field in job.extract:
+                data = entry.get(field.selector)
+                if data:
+                    extractions.append(Extraction(name=field.name, data=data.strip()))
+
+        return PageResult(url=url, fields=extractions)
+
+    def html_extract(self, job: Job, url: str) -> PageResult:
         html = visit_html(url=url)
         tree = lxml_html.fromstring(html)
 

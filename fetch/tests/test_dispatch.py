@@ -7,7 +7,7 @@ def test_navigate(test_server, test_sources_yml):
     d.start()
 
     job = d.jobs[0]
-    assert len(d.jobs) == 2
+    assert len(d.jobs) == 3
     assert job.name == "test"
     assert job.extract == [Field(name="title", selector="/html/body/h1")]
     assert job.nav == [
@@ -55,18 +55,22 @@ def test_dispatcher(test_server, test_sources_yml):
     d.execute_jobs()
 
     # Should have 1 SourceResult (one per source)
-    assert len(d.results) == 2
+    assert len(d.results) == 3
 
     source_result = d.results[0]
     source_result_rss_html = d.results[1]
+    source_result_rss = d.results[2]
     assert source_result.source_name == "test"
     assert source_result_rss_html.source_name == "test_rss_html"
+    assert source_result_rss.source_name == "test_only_rss"
     assert len(source_result.results) == 3
     assert len(source_result_rss_html.results) == 3
+    assert len(source_result_rss.results) == 1
 
     # Check that we have page results from all 3 appendix pages
     urls = {page_result.url for page_result in source_result.results}
     urls_rss_html = {page_result.url for page_result in source_result_rss_html.results}
+
     assert urls == {
         f"{test_server}/html/article_1_appendix.html",
         f"{test_server}/html/article_2_appendix.html",

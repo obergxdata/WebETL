@@ -1,4 +1,4 @@
-from job.gen_jobs import Source, Nav, Field
+from job.gen_jobs import Source, Nav, Field, Job
 
 
 def test_generate_jobs():
@@ -20,4 +20,17 @@ def test_generate_jobs():
         url=None,
         selector="/html/body/p[3]/a/@href",
         ftype="html",
+    )
+
+    assert source[2] == Job(
+        name="test_only_rss",
+        start="http://localhost:8888/rss/feed.xml",
+        ftype="rss",
+        extract=[
+            Field(
+                name="description",
+                selector="description",
+            )
+        ],
+        nav=[],
     )

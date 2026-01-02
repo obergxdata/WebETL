@@ -1,10 +1,10 @@
 source:
   - name: "test"
     start: "http://localhost:8888/html/home.html"
+    ftype: "html"
     navigate:
       - step: "first page"
         selector: "//ul/li/a/@href"
-        ftype: "html"
       - step: "articles"
         selector: "/html/body/p[3]/a/@href"
         ftype: "html"
@@ -12,13 +12,14 @@ source:
       fields:
         - name: "title"
           selector: "/html/body/h1"
+          type: "html"
 
   - name: "test_rss_html"
     start: "http://localhost:8888/rss/feed.xml"
+    ftype: "rss"
     navigate:
       - step: "the feed"
         selector: "link"
-        ftype: "rss"
       - step: "the article"
         selector: "/html/body/p[3]/a/@href"
         ftype: "html"
@@ -26,3 +27,11 @@ source:
       fields:
         - name: "title"
           selector: "/html/body/h1"
+    
+  - name: "test_only_rss"
+    start: "http://localhost:8888/rss/feed.xml"
+    ftype: "rss"
+    extract:
+      fields:
+        - name: "description"
+          selector: "description"

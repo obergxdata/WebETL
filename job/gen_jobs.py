@@ -13,6 +13,8 @@ class Field:
 @dataclass
 class Job:
     name: str
+    start: str
+    ftype: str
     extract: list[Field]
     nav: list[Nav]
     urls: list[str] | None = None
@@ -45,21 +47,33 @@ class Source:
                 fields.append(Field(name=field["name"], selector=field["selector"]))
 
             navs = []
-            for i, navigate in enumerate(source_conf["navigate"]):
-                if i == 0:
-                    nav = Nav(
-                        url=source_conf["start"],
-                        selector=navigate["selector"],
-                        ftype=navigate["ftype"],
-                    )
-                else:
-                    nav = Nav(
-                        url=None, selector=navigate["selector"], ftype=navigate["ftype"]
-                    )
 
-                navs.append(nav)
+            if "navigate" in source_conf:
+                for i, navigate in enumerate(source_conf["navigate"]):
+                    if i == 0:
+                        nav = Nav(
+                            url=source_conf["start"],
+                            selector=navigate["selector"],
+                            ftype=source_conf["ftype"],
+                        )
+                    else:
+                        nav = Nav(
+                            url=None,
+                            selector=navigate["selector"],
+                            ftype=navigate["ftype"],
+                        )
 
-            self.jobs.append(Job(name=source_conf["name"], extract=fields, nav=navs))
+                    navs.append(nav)
+
+            self.jobs.append(
+                Job(
+                    name=source_conf["name"],
+                    ftype=source_conf["ftype"],
+                    extract=fields,
+                    nav=navs,
+                    start=source_conf["start"],
+                )
+            )
 
         return self.jobs
 
