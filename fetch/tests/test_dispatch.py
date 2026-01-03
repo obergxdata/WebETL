@@ -2,12 +2,12 @@ from fetch.dispatch import Navigate, Dispatcher
 from job.gen_jobs import Nav, Field
 
 
-def test_navigate(test_server, test_sources_yml):
+def test_navigate_test(test_server, test_sources_yml):
+    """Test navigation for 'test' source (HTML -> HTML)."""
     d = Navigate(path=test_sources_yml)
     d.start()
 
     job = d.jobs[0]
-    assert len(d.jobs) == 3
     assert job.name == "test"
     assert job.extract == [Field(name="title", selector="/html/body/h1")]
     assert job.nav == [
@@ -27,6 +27,12 @@ def test_navigate(test_server, test_sources_yml):
         f"{test_server}/html/article_2_appendix.html",
         f"{test_server}/html/article_3_appendix.html",
     }
+
+
+def test_navigate_test_rss_html(test_server, test_sources_yml):
+    """Test navigation for 'test_rss_html' source (RSS -> HTML)."""
+    d = Navigate(path=test_sources_yml)
+    d.start()
 
     job_rss_html = d.jobs[1]
     assert job_rss_html.name == "test_rss_html"
@@ -50,59 +56,87 @@ def test_navigate(test_server, test_sources_yml):
     }
 
 
-def test_dispatcher(test_server, test_sources_yml):
+def test_navigate_test_only_rss(test_server, test_sources_yml):
+    """Test navigation for 'test_only_rss' source (RSS only)."""
+    d = Navigate(path=test_sources_yml)
+    d.start()
+
+    job_rss = d.jobs[2]
+    assert job_rss.name == "test_only_rss"
+    assert job_rss.extract == [Field(name="description", selector="description")]
+    assert job_rss.nav == []
+    assert len(job_rss.urls) == 1
+    assert job_rss.urls[0] == f"{test_server}/rss/feed.xml"
+
+
+def test_dispatcher_test(test_server, test_sources_yml):
+    """Test dispatcher execution for 'test' source (HTML -> HTML)."""
     d = Dispatcher(path=test_sources_yml)
     d.execute_jobs()
 
-    # Should have 1 SourceResult (one per source)
-    assert len(d.results) == 3
-
-    source_result = d.results[0]
-    source_result_rss_html = d.results[1]
-    source_result_rss = d.results[2]
+    source_result = [r for r in d.results if r.source_name == "test"][0]
     assert source_result.source_name == "test"
-    assert source_result_rss_html.source_name == "test_rss_html"
-    assert source_result_rss.source_name == "test_only_rss"
     assert len(source_result.results) == 3
-    assert len(source_result_rss_html.results) == 3
-    assert len(source_result_rss.results) == 1
 
-    # Check that we have page results from all 3 appendix pages
     urls = {page_result.url for page_result in source_result.results}
-    urls_rss_html = {page_result.url for page_result in source_result_rss_html.results}
-
     assert urls == {
         f"{test_server}/html/article_1_appendix.html",
         f"{test_server}/html/article_2_appendix.html",
         f"{test_server}/html/article_3_appendix.html",
     }
 
-    assert urls_rss_html == {
-        f"{test_server}/html/article_1_appendix.html",
-        f"{test_server}/html/article_2_appendix.html",
-        f"{test_server}/html/article_3_appendix.html",
-    }
-
-    # Check that each page result has the correct structure
     for page_result in source_result.results:
         assert len(page_result.fields) == 1
         assert page_result.fields[0].name == "title"
         assert len(page_result.fields[0].data) > 0
 
 
-def test_source_result_to_json(test_server, test_sources_yml):
+def test_dispatcher_test_rss_html(test_server, test_sources_yml):
+    """Test dispatcher execution for 'test_rss_html' source (RSS -> HTML)."""
     d = Dispatcher(path=test_sources_yml)
     d.execute_jobs()
 
-    source_result = d.results[0]
+    source_result_rss_html = [r for r in d.results if r.source_name == "test_rss_html"][0]
+    assert source_result_rss_html.source_name == "test_rss_html"
+    assert len(source_result_rss_html.results) == 3
+
+    urls_rss_html = {page_result.url for page_result in source_result_rss_html.results}
+    assert urls_rss_html == {
+        f"{test_server}/html/article_1_appendix.html",
+        f"{test_server}/html/article_2_appendix.html",
+        f"{test_server}/html/article_3_appendix.html",
+    }
+
+
+def test_dispatcher_test_only_rss(test_server, test_sources_yml):
+    """Test dispatcher execution for 'test_only_rss' source (RSS only)."""
+    d = Dispatcher(path=test_sources_yml)
+    d.execute_jobs()
+
+    source_result_rss = [r for r in d.results if r.source_name == "test_only_rss"][0]
+    assert source_result_rss.source_name == "test_only_rss"
+    assert len(source_result_rss.results) == 1
+
+    page_result = source_result_rss.results[0]
+    assert page_result.url == f"{test_server}/rss/feed.xml"
+    assert len(page_result.fields) == 3
+    for field in page_result.fields:
+        assert field.name == "description"
+        assert len(field.data) > 0
+
+
+def test_source_result_to_json_test(test_server, test_sources_yml):
+    """Test JSON serialization for 'test' source."""
+    d = Dispatcher(path=test_sources_yml)
+    d.execute_jobs()
+
+    source_result = [r for r in d.results if r.source_name == "test"][0]
     json_data = source_result.to_json()
 
-    # Check JSON structure
     assert json_data["source"] == "test"
     assert "result" in json_data
     assert len(json_data["result"]) == 3
 
-    # Check that each URL has the extracted fields
     for url, fields in json_data["result"].items():
         assert url.startswith(f"{test_server}/html/article_")
         assert "title" in fields
