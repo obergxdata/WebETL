@@ -29,8 +29,9 @@ class Nav:
 
 class Source:
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, source_name: str | None = None):
         self.path = path
+        self.source_name = source_name
         self.sources = self.load_yml()
         self.jobs: list[Job] = []
 
@@ -40,7 +41,12 @@ class Source:
             return yaml.safe_load(f)
 
     def gen_jobs(self):
-        for source_conf in self.sources["source"]:
+        sources = self.sources["source"]
+
+        if self.source_name:
+            sources = [s for s in sources if s["name"] == self.source_name]
+
+        for source_conf in sources:
 
             fields = []
             for field in source_conf["extract"]["fields"]:

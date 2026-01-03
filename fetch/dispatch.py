@@ -49,8 +49,8 @@ class SourceResult:
 
 class Navigate:
 
-    def __init__(self, path: str):
-        self.jobs: list[Job] = Source(path).gen_jobs()
+    def __init__(self, path: str, source_name: str | None = None):
+        self.jobs: list[Job] = Source(path, source_name=source_name).gen_jobs()
 
     def start(self):
         for job in self.jobs:
@@ -120,8 +120,8 @@ class Navigate:
 
 class Dispatcher:
 
-    def __init__(self, path: str):
-        self.navigate = Navigate(path)
+    def __init__(self, path: str, source_name: str | None = None):
+        self.navigate = Navigate(path, source_name=source_name)
         self.navigate.start()
         self.results: list[SourceResult] = []
 

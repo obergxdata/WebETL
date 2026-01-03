@@ -4,7 +4,7 @@ from job.gen_jobs import Nav, Field
 
 def test_navigate_test(test_server, test_sources_yml):
     """Test navigation for 'test' source (HTML -> HTML)."""
-    d = Navigate(path=test_sources_yml)
+    d = Navigate(path=test_sources_yml, source_name="test")
     d.start()
 
     job = d.jobs[0]
@@ -31,10 +31,10 @@ def test_navigate_test(test_server, test_sources_yml):
 
 def test_navigate_test_rss_html(test_server, test_sources_yml):
     """Test navigation for 'test_rss_html' source (RSS -> HTML)."""
-    d = Navigate(path=test_sources_yml)
+    d = Navigate(path=test_sources_yml, source_name="test_rss_html")
     d.start()
 
-    job_rss_html = d.jobs[1]
+    job_rss_html = d.jobs[0]
     assert job_rss_html.name == "test_rss_html"
     assert job_rss_html.extract == [Field(name="title", selector="/html/body/h1")]
     assert job_rss_html.nav == [
@@ -58,10 +58,10 @@ def test_navigate_test_rss_html(test_server, test_sources_yml):
 
 def test_navigate_test_only_rss(test_server, test_sources_yml):
     """Test navigation for 'test_only_rss' source (RSS only)."""
-    d = Navigate(path=test_sources_yml)
+    d = Navigate(path=test_sources_yml, source_name="test_only_rss")
     d.start()
 
-    job_rss = d.jobs[2]
+    job_rss = d.jobs[0]
     assert job_rss.name == "test_only_rss"
     assert job_rss.extract == [Field(name="description", selector="description")]
     assert job_rss.nav == []
@@ -71,10 +71,10 @@ def test_navigate_test_only_rss(test_server, test_sources_yml):
 
 def test_dispatcher_test(test_server, test_sources_yml):
     """Test dispatcher execution for 'test' source (HTML -> HTML)."""
-    d = Dispatcher(path=test_sources_yml)
+    d = Dispatcher(path=test_sources_yml, source_name="test")
     d.execute_jobs()
 
-    source_result = [r for r in d.results if r.source_name == "test"][0]
+    source_result = d.results[0]
     assert source_result.source_name == "test"
     assert len(source_result.results) == 3
 
@@ -93,10 +93,10 @@ def test_dispatcher_test(test_server, test_sources_yml):
 
 def test_dispatcher_test_rss_html(test_server, test_sources_yml):
     """Test dispatcher execution for 'test_rss_html' source (RSS -> HTML)."""
-    d = Dispatcher(path=test_sources_yml)
+    d = Dispatcher(path=test_sources_yml, source_name="test_rss_html")
     d.execute_jobs()
 
-    source_result_rss_html = [r for r in d.results if r.source_name == "test_rss_html"][0]
+    source_result_rss_html = d.results[0]
     assert source_result_rss_html.source_name == "test_rss_html"
     assert len(source_result_rss_html.results) == 3
 
@@ -110,10 +110,10 @@ def test_dispatcher_test_rss_html(test_server, test_sources_yml):
 
 def test_dispatcher_test_only_rss(test_server, test_sources_yml):
     """Test dispatcher execution for 'test_only_rss' source (RSS only)."""
-    d = Dispatcher(path=test_sources_yml)
+    d = Dispatcher(path=test_sources_yml, source_name="test_only_rss")
     d.execute_jobs()
 
-    source_result_rss = [r for r in d.results if r.source_name == "test_only_rss"][0]
+    source_result_rss = d.results[0]
     assert source_result_rss.source_name == "test_only_rss"
     assert len(source_result_rss.results) == 1
 
@@ -125,12 +125,45 @@ def test_dispatcher_test_only_rss(test_server, test_sources_yml):
         assert len(field.data) > 0
 
 
-def test_source_result_to_json_test(test_server, test_sources_yml):
-    """Test JSON serialization for 'test' source."""
-    d = Dispatcher(path=test_sources_yml)
+def test_navigate_broken_test_rss_html(test_server, test_sources_yml):
+    """Test navigation for 'broken_test_rss_html' source (RSS -> HTML with text() selector)."""
+    d = Navigate(path=test_sources_yml, source_name="broken_test_rss_html")
+    d.start()
+
+    job_broken = d.jobs[0]
+    assert job_broken.name == "broken_test_rss_html"
+    assert job_broken.extract == [Field(name="title", selector="/html/body/h1")]
+    assert job_broken.nav == [
+        Nav(
+            url=f"{test_server}/rss/feed.xml",
+            selector="link",
+            ftype="rss",
+        ),
+        Nav(
+            url=None,
+            selector="/html/body/p[3]/text()",
+            ftype="html",
+        ),
+    ]
+    assert set(job_broken.urls) == set()
+
+
+def test_dispatcher_broken_test_rss_html(test_server, test_sources_yml):
+    """Test dispatcher execution for 'broken_test_rss_html' source (RSS -> HTML with text() selector)."""
+    d = Dispatcher(path=test_sources_yml, source_name="broken_test_rss_html")
     d.execute_jobs()
 
-    source_result = [r for r in d.results if r.source_name == "test"][0]
+    source_result_broken = d.results[0]
+    assert source_result_broken.source_name == "broken_test_rss_html"
+    assert len(source_result_broken.results) == 0
+
+
+def test_source_result_to_json_test(test_server, test_sources_yml):
+    """Test JSON serialization for 'test' source."""
+    d = Dispatcher(path=test_sources_yml, source_name="test")
+    d.execute_jobs()
+
+    source_result = d.results[0]
     json_data = source_result.to_json()
 
     assert json_data["source"] == "test"

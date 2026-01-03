@@ -35,3 +35,19 @@ source:
       fields:
         - name: "description"
           selector: "description"
+
+
+
+  - name: "broken_test_rss_html"
+    start: "http://localhost:8888/rss/feed.xml"
+    ftype: "rss"
+    navigate:
+      - step: "the feed"
+        selector: "link"
+      - step: "the article"
+        selector: "/html/body/p[3]/text()" # this is broken
+        ftype: "html"
+    extract:
+      fields:
+        - name: "title"
+          selector: "/html/body/h1"
