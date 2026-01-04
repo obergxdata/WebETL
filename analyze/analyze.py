@@ -12,7 +12,12 @@ class Analyze:
         self.raw_data = self._load_raw_data()
 
     def _load_raw_data(self) -> dict[str, dict]:
+        """Load raw data JSON files for sources that have analyze enabled.
+        Only loads data for source names that exist in self.jobs.
 
+        Returns:
+            dict[str, dict]: Dictionary mapping source name to raw data
+        """
         # Get absolute path to data/raw/YYYY-MM-DD directory
         analyze_dir = Path(__file__).parent
         root_dir = analyze_dir.parent
@@ -20,17 +25,19 @@ class Analyze:
 
         raw_data = {}
 
-        # Load all JSON files in the directory
+        # Only load raw data for sources that have jobs with analyze=True
         if raw_data_dir.exists():
-            for json_file in raw_data_dir.glob("*.json"):
-                source_name = json_file.stem  # filename without extension
-                with open(json_file, "r") as f:
-                    raw_data[source_name] = json.load(f)
+            for source_name in self.jobs.keys():
+                json_file = raw_data_dir / f"{source_name}.json"
+                if json_file.exists():
+                    with open(json_file, "r") as f:
+                        raw_data[source_name] = json.load(f)
 
         return raw_data
 
     def _load_jobs(self) -> dict[str, Job]:
         """Load job pickles from data/jobs/YYYY-MM-DD/*.pkl files.
+        Only loads jobs where analyze field is truthy.
 
         Returns:
             dict[str, Job]: Dictionary mapping job name to Job object
@@ -47,17 +54,29 @@ class Analyze:
             for pkl_file in jobs_dir.glob("*.pkl"):
                 job_name = pkl_file.stem  # filename without extension
                 with open(pkl_file, "rb") as f:
-                    jobs[job_name] = pickle.load(f)
+                    job = pickle.load(f)
+                    # Only include jobs where analyze is truthy
+                    if job.analyze:
+                        jobs[job_name] = job
 
         return jobs
 
-    def summarize(self):
-        # Get all jobs where analyze contains a summarize type
-        summarize_jobs = [
-            job
-            for job in self.jobs.values()
-            if job.analyze and any(a.get("type") == "summarize" for a in job.analyze)
-        ]
+    def run(self):
+        for job_name, job in self.jobs.items():
+            for analyze_job in job.analyze:
+                if analyze_job["type"] == "summarize":
+                    result = self.summarize(job=job, ajob=analyze_job)
+
+    def summarize(self, job: Job, ajob: dict):
+        data = ""
+        for url, result in self.raw_data[job.name]["result"].items():
+            for field, value in result.items():
+                if field in ajob["fields"]:
+                    data += f"{field}: {value}\n"
+
+            # Add sum logic here brother!
+            # Then save to silver
+            raise Exception(data)
 
 
 """

@@ -11,9 +11,15 @@ def test_summarize(dispatch_all_sources):
     dispatcher.save_results()
     analyzer = Analyze(data_date=DATA_DATE)
 
-    # Verify jobs and raw data were loaded
-    assert len(analyzer.jobs) == 4
-    assert len(analyzer.raw_data) == 4
+    # Verify only jobs with analyze=True were loaded (only test_rss_html has it)
+    assert len(analyzer.jobs) == 1
+    assert "test_rss_html" in analyzer.jobs
+    assert len(analyzer.raw_data) == 1
+    assert "test_rss_html" in analyzer.raw_data
+
+    # Verify the job has analyze field
+    assert analyzer.jobs["test_rss_html"].analyze is not None
+    assert len(analyzer.jobs["test_rss_html"].analyze) > 0
 
     # Call summarize
-    analyzer.summarize()
+    analyzer.run()

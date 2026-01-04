@@ -16,10 +16,10 @@ clean:
 	@echo "Cleaned up cache directories"
 
 # Run tracking commands
-last-runs:
+runs:
 	@python manage_runs.py last-runs
 
-last-runs-%:
+runs-%:
 	@python manage_runs.py last-runs $*
 
 has-run-today:
