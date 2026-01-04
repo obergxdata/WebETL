@@ -2,10 +2,10 @@ source:
 
   - name: "test"
     start: "http://localhost:8888/html/home.html"
-    ftype: "html"
     navigate:
       - step: "first page"
         selector: "//ul/li/a/@href"
+        ftype: "html"
       - step: "articles"
         selector: "//div[@id='article-body']/p[4]/a/@href"
         ftype: "html"
@@ -19,10 +19,10 @@ source:
 
   - name: "test_rss_html"
     start: "http://localhost:8888/rss/feed.xml"
-    ftype: "rss"
     navigate:
       - step: "the feed"
         selector: "link"
+        ftype: "rss"
       - step: "the article"
         selector: "//div[@id='article-body']/p[4]/a/@href"
         ftype: "html"
@@ -36,7 +36,6 @@ source:
     
   - name: "test_only_rss"
     start: "http://localhost:8888/rss/feed.xml"
-    ftype: "rss"
     extract:
       ftype: "rss"
       fields:
@@ -47,11 +46,11 @@ source:
 
   - name: "test_rss_html_pdf"
     start: "http://localhost:8888/rss/feed.xml"
-    ftype: "rss"
     navigate:
       - step: "the feed"
         selector: "link"
         must_contain: ["html"]
+        ftype: "rss"
       - step: "the article"
         selector: "//div[@id='article-body']/p[5]/a/@href"
         ftype: "html"

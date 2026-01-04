@@ -58,12 +58,14 @@ class Source:
             navs = []
 
             if "navigate" in source_conf:
+
                 for i, navigate in enumerate(source_conf["navigate"]):
                     if i == 0:
+                        job_ftype = navigate["ftype"]
                         nav = Nav(
                             url=source_conf["start"],
                             selector=navigate["selector"],
-                            ftype=source_conf["ftype"],
+                            ftype=navigate["ftype"],
                             must_contain=navigate.get("must_contain"),
                         )
                     else:
@@ -75,11 +77,13 @@ class Source:
                         )
 
                     navs.append(nav)
+            else:
+                job_ftype = source_conf["extract"]["ftype"]
 
             self.jobs.append(
                 Job(
                     name=source_conf["name"],
-                    ftype=source_conf["ftype"],
+                    ftype=job_ftype,
                     extract_ftype=source_conf["extract"]["ftype"],
                     extract=fields,
                     nav=navs,
