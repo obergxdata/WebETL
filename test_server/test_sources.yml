@@ -33,6 +33,9 @@ source:
           selector: "/html/body/h1"
         - name: "body"
           selector: "//div[@id='article-body']"
+    analyze:
+      - type: "summarize"
+        fields: ["body", "title"]
     
   - name: "test_only_rss"
     start: "http://localhost:8888/rss/feed.xml"

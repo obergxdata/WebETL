@@ -1,5 +1,5 @@
 from fetch.dispatch import Navigate, Dispatcher
-from job.gen_jobs import Nav, Field
+from source.source_manager import Nav, Field
 import pytest
 
 
@@ -176,3 +176,30 @@ def test_source_result_to_json_test(test_server, test_sources_yml):
         assert url.startswith(f"{test_server}/html/article_")
         assert "title" in fields
         assert len(fields["title"]) > 0
+
+
+def test_run_tracker_prevents_duplicate_runs(test_server, test_sources_yml):
+    """Test that running the same source twice in one day skips the second run."""
+    from fetch.dispatch import RunTracker
+
+    # First run - should execute normally
+    d1 = Dispatcher(path=test_sources_yml, source_name="test")
+    d1.execute_jobs()
+
+    # Verify first run completed and recorded
+    tracker = RunTracker()
+    assert tracker.has_run_today("test") is True
+
+    # Get URLs from first run
+    first_run_jobs = d1.navigate.jobs
+    assert len(first_run_jobs) == 1
+    assert len(first_run_jobs[0].urls) == 3
+
+    # Second run - should skip navigation due to run tracker
+    d2 = Dispatcher(path=test_sources_yml, source_name="test")
+    d2.execute_jobs()
+
+    # Verify second run was skipped (no URLs collected)
+    second_run_jobs = d2.navigate.jobs
+    assert len(second_run_jobs) == 1
+    assert second_run_jobs[0].urls is None  # URLs were never set because navigation was skipped

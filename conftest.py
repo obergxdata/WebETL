@@ -55,6 +55,53 @@ def test_sources_yml(test_server):
     Path(temp_file.name).unlink()
 
 
+@pytest.fixture(autouse=True)
+def cleanup_generated_test_files():
+    """
+    Auto-use fixture that cleans up generated test files after each test.
+    This runs after every test to ensure test isolation.
+    Removes all files starting with 'test_' prefix and test run records from database.
+    """
+    from datetime import datetime
+    from fetch.dispatch import RunTracker
+
+    # Setup: nothing needed before test
+    yield
+
+    # Teardown: clean up after test completes
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        root_dir = Path(__file__).parent
+
+        # Remove raw data JSON files for test sources (files starting with test or test_)
+        raw_data_dir = root_dir / "data" / "raw" / today
+        if raw_data_dir.exists():
+            for json_file in raw_data_dir.glob("test*.json"):
+                json_file.unlink()
+            # Remove directory if empty
+            if not any(raw_data_dir.iterdir()):
+                raw_data_dir.rmdir()
+
+        # Remove job pickle files for test sources (files starting with test or test_)
+        jobs_dir = root_dir / "data" / "jobs" / today
+        if jobs_dir.exists():
+            for pkl_file in jobs_dir.glob("test*.pkl"):
+                pkl_file.unlink()
+            # Remove directory if empty
+            if not any(jobs_dir.iterdir()):
+                jobs_dir.rmdir()
+
+        # Remove test run records from database
+        tracker = RunTracker()
+        import sqlite3
+        with sqlite3.connect(tracker.db_path) as conn:
+            conn.execute("DELETE FROM runs WHERE source_name LIKE 'test%'")
+            conn.commit()
+    except Exception as e:
+        # Don't fail tests if cleanup fails
+        print(f"Warning: Test cleanup failed: {e}")
+
+
 @pytest.fixture
 def dispatch_all_sources(test_sources_yml):
     """

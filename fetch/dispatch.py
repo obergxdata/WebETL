@@ -1,4 +1,4 @@
-from job.gen_jobs import Source, Nav, Job
+from source.source_manager import Source, Nav, Job
 from fetch.http import visit_html
 from fetch.rss import visit_rss
 from lxml import html as lxml_html
@@ -10,6 +10,174 @@ from datetime import datetime
 import json
 from io import BytesIO
 import pypdfium2 as pdfium
+import sqlite3
+
+
+class RunTracker:
+    """Tracks source runs in SQLite database."""
+
+    def __init__(self, db_path: str | Path = None):
+        if db_path is None:
+            project_root = Path(__file__).parent.parent
+            db_path = project_root / "data" / "runs.db"
+        else:
+            db_path = Path(db_path)
+
+        # Ensure data directory exists
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self.db_path = db_path
+        self._create_table()
+
+    def _create_table(self) -> None:
+        """Create the runs table if it doesn't exist."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source_name TEXT NOT NULL,
+                    run_datetime TEXT NOT NULL
+                )
+                """
+            )
+            # Create index for faster lookups
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_source_name
+                ON runs(source_name)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_run_datetime
+                ON runs(run_datetime)
+                """
+            )
+            conn.commit()
+
+    def add_run(self, source_name: str, run_datetime: datetime = None) -> None:
+        """Add a run record to the database.
+
+        Args:
+            source_name: Name of the source
+            run_datetime: DateTime of the run (defaults to now)
+        """
+        if run_datetime is None:
+            run_datetime = datetime.now()
+
+        datetime_str = run_datetime.isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT INTO runs (source_name, run_datetime) VALUES (?, ?)",
+                (source_name, datetime_str),
+            )
+            conn.commit()
+
+    def delete_by_source(self, source_name: str) -> int:
+        """Delete all runs for a specific source.
+
+        Args:
+            source_name: Name of the source to delete
+
+        Returns:
+            Number of rows deleted
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "DELETE FROM runs WHERE source_name = ?", (source_name,)
+            )
+            conn.commit()
+            return cursor.rowcount
+
+    def delete_by_date(self, date: datetime | str = None) -> int:
+        """Delete all runs for a specific date.
+
+        Args:
+            date: Date to delete (datetime object, date string "YYYY-MM-DD", or None for today)
+
+        Returns:
+            Number of rows deleted
+        """
+        if date is None:
+            date = datetime.now()
+
+        # Handle string input (e.g., "2026-01-04")
+        if isinstance(date, str):
+            date_str = date
+        else:
+            # Handle both datetime and date objects
+            date_str = date.strftime("%Y-%m-%d")
+
+        start_datetime = f"{date_str}T00:00:00"
+        end_datetime = f"{date_str}T23:59:59"
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "DELETE FROM runs WHERE run_datetime >= ? AND run_datetime <= ?",
+                (start_datetime, end_datetime),
+            )
+            conn.commit()
+            return cursor.rowcount
+
+    def delete_all(self) -> int:
+        """Delete all runs from the database.
+
+        Returns:
+            Number of rows deleted
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("DELETE FROM runs")
+            conn.commit()
+            return cursor.rowcount
+
+    def has_run_today(self, source_name: str) -> bool:
+        """Check if a source has run today.
+
+        Args:
+            source_name: Name of the source to check
+
+        Returns:
+            True if the source has run today, False otherwise
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        start_datetime = f"{today}T00:00:00"
+        end_datetime = f"{today}T23:59:59"
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                """
+                SELECT COUNT(*) FROM runs
+                WHERE source_name = ?
+                AND run_datetime >= ?
+                AND run_datetime <= ?
+                """,
+                (source_name, start_datetime, end_datetime),
+            )
+            count = cursor.fetchone()[0]
+            return count > 0
+
+    def get_latest_runs(self, limit: int = 100) -> list[tuple[str, str]]:
+        """Get the latest runs from the database.
+
+        Args:
+            limit: Maximum number of runs to return (default: 100)
+
+        Returns:
+            List of tuples (source_name, run_datetime) ordered by most recent first
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                """
+                SELECT source_name, run_datetime
+                FROM runs
+                ORDER BY run_datetime DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+            return cursor.fetchall()
 
 
 @dataclass
@@ -55,9 +223,13 @@ class Navigate:
 
     def __init__(self, path: str, source_name: str | None = None):
         self.jobs: list[Job] = Source(path, source_name=source_name).gen_jobs()
+        self.run_tracker = RunTracker()
 
     def start(self):
         for job in self.jobs:
+            # Skip if this source has already run today
+            if self.run_tracker.has_run_today(job.name):
+                continue
 
             if not job.nav:
                 job.urls = [job.start]
@@ -70,6 +242,9 @@ class Navigate:
                 current_navs = self.process_navigation_step(
                     job, current_navs, step_index, is_final
                 )
+
+            # Mark this source as run after successful navigation
+            self.run_tracker.add_run(job.name)
 
     def process_navigation_step(
         self, job: Job, current_navs: list[Nav], step_index: int, is_final: bool
@@ -152,8 +327,10 @@ class Dispatcher:
 
     def execute_jobs(self):
         for job in self.navigate.jobs:
-            page_results = []
 
+            if not job.urls:
+                continue
+            page_results = []
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = []
                 for url in job.urls:

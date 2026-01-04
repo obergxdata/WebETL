@@ -1,9 +1,9 @@
-from job.gen_jobs import Source, Nav, Field, Job
+from source.source_manager import Source, Nav, Field, Job
 
 
-def test_generate_jobs_test():
+def test_generate_jobs_test(test_sources_yml):
     """Test job generation for 'test' source (HTML -> HTML)."""
-    source = Source("test_server/test_sources.yml", source_name="test")
+    source = Source(test_sources_yml, source_name="test")
     jobs = source.gen_jobs()
 
     assert len(jobs) == 1
@@ -36,9 +36,9 @@ def test_generate_jobs_test():
     ]
 
 
-def test_generate_jobs_test_rss_html():
+def test_generate_jobs_test_rss_html(test_sources_yml):
     """Test job generation for 'test_rss_html' source (RSS -> HTML)."""
-    source = Source("test_server/test_sources.yml", source_name="test_rss_html")
+    source = Source(test_sources_yml, source_name="test_rss_html")
     jobs = source.gen_jobs()
 
     assert len(jobs) == 1
@@ -71,9 +71,9 @@ def test_generate_jobs_test_rss_html():
     ]
 
 
-def test_generate_jobs_test_only_rss():
+def test_generate_jobs_test_only_rss(test_sources_yml):
     """Test job generation for 'test_only_rss' source (RSS only)."""
-    source = Source("test_server/test_sources.yml", source_name="test_only_rss")
+    source = Source(test_sources_yml, source_name="test_only_rss")
     jobs = source.gen_jobs()
 
     assert len(jobs) == 1
@@ -95,12 +95,13 @@ def test_generate_jobs_test_only_rss():
             ),
         ],
         nav=[],
+        analyze=[],
     )
 
 
-def test_generate_jobs_test_rss_html_pdf():
+def test_generate_jobs_test_rss_html_pdf(test_sources_yml):
     """Test job generation for 'test_rss_html_pdf' source (RSS -> HTML -> PDF)."""
-    source = Source("test_server/test_sources.yml", source_name="test_rss_html_pdf")
+    source = Source(test_sources_yml, source_name="test_rss_html_pdf")
     jobs = source.gen_jobs()
 
     assert len(jobs) == 1
