@@ -223,7 +223,6 @@ class Navigate:
 
     def __init__(self, path: str, source_name: str | None = None):
         self.jobs: list[Job] = Source(path, source_name=source_name).gen_jobs()
-        self.run_tracker = RunTracker()
 
     def start(self):
         for job in self.jobs:
