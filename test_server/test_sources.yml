@@ -14,10 +14,8 @@ source:
       fields:
         - name: "title"
           selector: "/html/body/h1"
-          type: "html"
         - name: "body"
           selector: "//div[@id='article-body']"
-          type: "html"
 
   - name: "test_rss_html"
     start: "http://localhost:8888/rss/feed.xml"
@@ -35,7 +33,6 @@ source:
           selector: "/html/body/h1"
         - name: "body"
           selector: "//div[@id='article-body']"
-          type: "html"
     
   - name: "test_only_rss"
     start: "http://localhost:8888/rss/feed.xml"
