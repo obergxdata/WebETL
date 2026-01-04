@@ -2,12 +2,14 @@ from job.gen_jobs import Source, Nav, Job
 from fetch.http import visit_html
 from fetch.rss import visit_rss
 from lxml import html as lxml_html
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
 import json
+from io import BytesIO
+import pypdfium2 as pdfium
 
 
 @dataclass
@@ -72,6 +74,8 @@ class Navigate:
     ) -> list[Nav]:
 
         all_urls = self.navigate_all(current_navs)
+        if not all_urls:
+            raise Exception(f"Failed to navigate: {job.nav[step_index]}")
 
         if is_final:
             if job.urls is None:
@@ -95,8 +99,20 @@ class Navigate:
 
     def build_next_navs(self, urls: list[str], template: Nav) -> list[Nav]:
         return [
-            Nav(url=url, selector=template.selector, ftype=template.ftype)
+            Nav(
+                url=url,
+                selector=template.selector,
+                ftype=template.ftype,
+                must_contain=template.must_contain,
+            )
             for url in urls
+        ]
+
+    def filter_urls(self, urls: list[str], nav: Nav) -> list[str]:
+        if not nav.must_contain:
+            return urls
+        return [
+            url for url in urls if all(pattern in url for pattern in nav.must_contain)
         ]
 
     def navigate(self, nav: Nav) -> list[str]:
@@ -107,8 +123,15 @@ class Navigate:
         elif nav.ftype == "html":
             doc = visit_html(url=nav.url)
             relative_urls = self.select_html(doc, nav.selector)
+        else:
+            raise Exception(f"Unsupported navigation ftype: {nav.ftype}")
 
-        return [urljoin(nav.url, url) for url in relative_urls]
+        relative_urls = self.filter_urls(relative_urls, nav)
+
+        return [
+            urljoin(nav.url, quote(url, safe="/:?#[]@!$&'()*+,;="))
+            for url in relative_urls
+        ]
 
     def select_html(self, doc: str, selector: str) -> list:
         tree = lxml_html.fromstring(doc)
@@ -132,10 +155,14 @@ class Dispatcher:
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = []
                 for url in job.urls:
-                    if job.ftype == "html":
+                    if job.extract_ftype == "html":
                         extractor = self.html_extract
-                    elif job.ftype == "rss":
+                    elif job.extract_ftype == "rss":
                         extractor = self.rss_extract
+                    elif job.extract_ftype == "pdf":
+                        extractor = self.pdf_extract
+                    else:
+                        raise Exception(f"Unsupported job ftype: {job.ftype}")
 
                     futures.append(executor.submit(extractor, job, url))
 
@@ -172,3 +199,23 @@ class Dispatcher:
                 extractions.append(Extraction(name=field.name, data=value.strip()))
 
         return PageResult(url=url, fields=extractions)
+
+    def pdf_extract(self, job: Job, url: str) -> list:
+        # Load PDF from bytes
+        doc = visit_html(url=url, text=False)
+        pdf = pdfium.PdfDocument(BytesIO(doc))
+
+        extractions = []
+        for page_num in range(len(pdf)):
+            page = pdf[page_num]
+            textpage = page.get_textpage()
+            text = textpage.get_text_range()
+            extractions.append(text)
+            textpage.close()
+            page.close()
+
+        pdf.close()
+
+        return PageResult(
+            url=url, fields=[Extraction(name="content", data="".join(extractions))]
+        )

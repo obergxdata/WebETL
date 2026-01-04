@@ -7,7 +7,7 @@ test-server-kill:
 	@echo "Killing test server on port 8888..."
 	@lsof -ti:8888 | xargs kill -9 2>/dev/null && echo "Test server killed" || echo "No server running on port 8888"
 
-test:
+tests:
 	@python -m pytest job/test_gen_jobs.py fetch/tests/test_dispatch.py -v
 
 clean:

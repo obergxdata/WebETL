@@ -16,6 +16,7 @@ class Job:
     start: str
     ftype: str
     extract: list[Field]
+    extract_ftype: str
     nav: list[Nav]
     urls: list[str] | None = None
 
@@ -25,6 +26,7 @@ class Nav:
     selector: str
     ftype: str
     url: str | None = None
+    must_contain: list[str] | None = None
 
 
 class Source:
@@ -49,8 +51,9 @@ class Source:
         for source_conf in sources:
 
             fields = []
-            for field in source_conf["extract"]["fields"]:
-                fields.append(Field(name=field["name"], selector=field["selector"]))
+            if "fields" in source_conf["extract"]:
+                for field in source_conf["extract"]["fields"]:
+                    fields.append(Field(name=field["name"], selector=field["selector"]))
 
             navs = []
 
@@ -61,12 +64,14 @@ class Source:
                             url=source_conf["start"],
                             selector=navigate["selector"],
                             ftype=source_conf["ftype"],
+                            must_contain=navigate.get("must_contain"),
                         )
                     else:
                         nav = Nav(
                             url=None,
                             selector=navigate["selector"],
                             ftype=navigate["ftype"],
+                            must_contain=navigate.get("must_contain"),
                         )
 
                     navs.append(nav)
@@ -75,6 +80,7 @@ class Source:
                 Job(
                     name=source_conf["name"],
                     ftype=source_conf["ftype"],
+                    extract_ftype=source_conf["extract"]["ftype"],
                     extract=fields,
                     nav=navs,
                     start=source_conf["start"],

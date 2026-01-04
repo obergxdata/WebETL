@@ -1,5 +1,6 @@
 from fetch.dispatch import Navigate, Dispatcher
 from job.gen_jobs import Nav, Field
+import pytest
 
 
 def test_navigate_test(test_server, test_sources_yml):
@@ -128,34 +129,28 @@ def test_dispatcher_test_only_rss(test_server, test_sources_yml):
 def test_navigate_broken_test_rss_html(test_server, test_sources_yml):
     """Test navigation for 'broken_test_rss_html' source (RSS -> HTML with text() selector)."""
     d = Navigate(path=test_sources_yml, source_name="broken_test_rss_html")
-    d.start()
-
-    job_broken = d.jobs[0]
-    assert job_broken.name == "broken_test_rss_html"
-    assert job_broken.extract == [Field(name="title", selector="/html/body/h1")]
-    assert job_broken.nav == [
-        Nav(
-            url=f"{test_server}/rss/feed.xml",
-            selector="link",
-            ftype="rss",
-        ),
-        Nav(
-            url=None,
-            selector="/html/body/p[3]/text()",
-            ftype="html",
-        ),
-    ]
-    assert set(job_broken.urls) == set()
+    with pytest.raises(Exception, match="Failed to navigate"):
+        d.start()
 
 
-def test_dispatcher_broken_test_rss_html(test_server, test_sources_yml):
-    """Test dispatcher execution for 'broken_test_rss_html' source (RSS -> HTML with text() selector)."""
-    d = Dispatcher(path=test_sources_yml, source_name="broken_test_rss_html")
+def test_dispatcher_test_rss_html_pdf(test_server, test_sources_yml):
+    """Test dispatcher execution for 'test_rss_html_pdf' source (RSS -> HTML -> PDF)."""
+    d = Dispatcher(path=test_sources_yml, source_name="test_rss_html_pdf")
     d.execute_jobs()
 
-    source_result_broken = d.results[0]
-    assert source_result_broken.source_name == "broken_test_rss_html"
-    assert len(source_result_broken.results) == 0
+    source_result_rss_html_pdf = d.results[0]
+    assert source_result_rss_html_pdf.source_name == "test_rss_html_pdf"
+    assert len(source_result_rss_html_pdf.results) == 1
+
+    urls_rss_html_pdf = {
+        page_result.url for page_result in source_result_rss_html_pdf.results
+    }
+    for url in urls_rss_html_pdf:
+        assert url.endswith(".pdf")
+
+    for page_result in source_result_rss_html_pdf.results:
+        assert len(page_result.fields) == 1
+        assert "This is a pdf" in page_result.fields[0].data
 
 
 def test_source_result_to_json_test(test_server, test_sources_yml):

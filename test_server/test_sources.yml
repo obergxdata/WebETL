@@ -9,6 +9,7 @@ source:
         selector: "/html/body/p[3]/a/@href"
         ftype: "html"
     extract:
+      ftype: "html"
       fields:
         - name: "title"
           selector: "/html/body/h1"
@@ -24,6 +25,7 @@ source:
         selector: "/html/body/p[3]/a/@href"
         ftype: "html"
     extract:
+      ftype: "html"
       fields:
         - name: "title"
           selector: "/html/body/h1"
@@ -32,6 +34,7 @@ source:
     start: "http://localhost:8888/rss/feed.xml"
     ftype: "rss"
     extract:
+      ftype: "rss"
       fields:
         - name: "description"
           selector: "description"
@@ -48,6 +51,21 @@ source:
         selector: "/html/body/p[3]/text()" # this is broken
         ftype: "html"
     extract:
+      ftype: "html"
       fields:
         - name: "title"
           selector: "/html/body/h1"
+
+  - name: "test_rss_html_pdf"
+    start: "http://localhost:8888/rss/feed.xml"
+    ftype: "rss"
+    navigate:
+      - step: "the feed"
+        selector: "link"
+        must_contain: ["html"]
+      - step: "the article"
+        selector: "/html/body/p[4]/a/@href"
+        ftype: "html"
+        must_contain: [".pdf"]
+    extract:
+      ftype: "pdf"
