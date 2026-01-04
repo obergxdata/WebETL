@@ -1,4 +1,4 @@
-.PHONY: server test clean test-server-kill last-runs has-run-today delete-source delete-date delete-all-runs reset-all
+.PHONY: server test clean test-server-kill last-fetches has-fetched delete-source delete-url delete-all-fetches reset-all
 
 test-server:
 	@python -m test_server.server
@@ -15,26 +15,26 @@ clean:
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	@echo "Cleaned up cache directories"
 
-# Run tracking commands
-runs:
-	@python manage_runs.py last-runs
+# URL tracking commands
+fetches:
+	@python manage_runs.py last-fetches
 
-runs-%:
-	@python manage_runs.py last-runs $*
+fetches-%:
+	@python manage_runs.py last-fetches $*
 
-has-run-today:
-	@python manage_runs.py has-run-today $(SOURCE)
+has-fetched:
+	@python manage_runs.py has-fetched $(URL)
 
 delete-source:
 	@python manage_runs.py delete-source $(SOURCE)
 
-delete-date:
-	@python manage_runs.py delete-date $(DATE)
+delete-url:
+	@python manage_runs.py delete-url $(URL)
 
-delete-all-runs:
-	@echo "WARNING: This will delete ALL run history."
+delete-all-fetches:
+	@echo "WARNING: This will delete ALL fetched URL history."
 	@read -p "Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] && python manage_runs.py delete-all || echo "Cancelled"
 
 reset-all:
-	@echo "WARNING: This will delete ALL data (raw files, jobs, runs database)."
+	@echo "WARNING: This will delete ALL data (raw files, jobs, fetched URLs database)."
 	@read -p "Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] && rm -rf data/* && echo "All data deleted" || echo "Cancelled"

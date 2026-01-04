@@ -14,7 +14,7 @@ import sqlite3
 
 
 class RunTracker:
-    """Tracks source runs in SQLite database."""
+    """Tracks fetched URLs in SQLite database to prevent duplicate fetches."""
 
     def __init__(self, db_path: str | Path = None):
         if db_path is None:
@@ -30,53 +30,93 @@ class RunTracker:
         self._create_table()
 
     def _create_table(self) -> None:
-        """Create the runs table if it doesn't exist."""
+        """Create the fetched_urls table if it doesn't exist."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 """
-                CREATE TABLE IF NOT EXISTS runs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                CREATE TABLE IF NOT EXISTS fetched_urls (
+                    url TEXT PRIMARY KEY,
                     source_name TEXT NOT NULL,
-                    run_datetime TEXT NOT NULL
+                    fetch_datetime TEXT NOT NULL
                 )
                 """
             )
-            # Create index for faster lookups
+            # Create index for faster source lookups
             conn.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_source_name
-                ON runs(source_name)
+                ON fetched_urls(source_name)
                 """
             )
             conn.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_run_datetime
-                ON runs(run_datetime)
+                CREATE INDEX IF NOT EXISTS idx_fetch_datetime
+                ON fetched_urls(fetch_datetime)
                 """
             )
             conn.commit()
 
-    def add_run(self, source_name: str, run_datetime: datetime = None) -> None:
-        """Add a run record to the database.
+    def add_url(self, url: str, source_name: str, fetch_datetime: datetime = None) -> None:
+        """Add a fetched URL record to the database.
 
         Args:
+            url: The URL that was fetched
             source_name: Name of the source
-            run_datetime: DateTime of the run (defaults to now)
+            fetch_datetime: DateTime of the fetch (defaults to now)
         """
-        if run_datetime is None:
-            run_datetime = datetime.now()
+        if fetch_datetime is None:
+            fetch_datetime = datetime.now()
 
-        datetime_str = run_datetime.isoformat()
+        datetime_str = fetch_datetime.isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT INTO runs (source_name, run_datetime) VALUES (?, ?)",
-                (source_name, datetime_str),
+                "INSERT OR IGNORE INTO fetched_urls (url, source_name, fetch_datetime) VALUES (?, ?, ?)",
+                (url, source_name, datetime_str),
             )
             conn.commit()
 
+    def has_been_fetched(self, url: str) -> bool:
+        """Check if a URL has ever been fetched.
+
+        Args:
+            url: The URL to check
+
+        Returns:
+            True if the URL has been fetched before, False otherwise
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT COUNT(*) FROM fetched_urls WHERE url = ?",
+                (url,),
+            )
+            count = cursor.fetchone()[0]
+            return count > 0
+
+    def filter_unfetched_urls(self, urls: list[str]) -> list[str]:
+        """Filter out URLs that have already been fetched.
+
+        Args:
+            urls: List of URLs to filter
+
+        Returns:
+            List of URLs that have not been fetched yet
+        """
+        if not urls:
+            return []
+
+        placeholders = ",".join("?" * len(urls))
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                f"SELECT url FROM fetched_urls WHERE url IN ({placeholders})",
+                urls,
+            )
+            fetched_urls = {row[0] for row in cursor.fetchall()}
+
+        return [url for url in urls if url not in fetched_urls]
+
     def delete_by_source(self, source_name: str) -> int:
-        """Delete all runs for a specific source.
+        """Delete all fetched URLs for a specific source.
 
         Args:
             source_name: Name of the source to delete
@@ -86,93 +126,53 @@ class RunTracker:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "DELETE FROM runs WHERE source_name = ?", (source_name,)
+                "DELETE FROM fetched_urls WHERE source_name = ?", (source_name,)
             )
             conn.commit()
             return cursor.rowcount
 
-    def delete_by_date(self, date: datetime | str = None) -> int:
-        """Delete all runs for a specific date.
+    def delete_by_url(self, url: str) -> int:
+        """Delete a specific URL from the database.
 
         Args:
-            date: Date to delete (datetime object, date string "YYYY-MM-DD", or None for today)
+            url: The URL to delete
 
         Returns:
             Number of rows deleted
         """
-        if date is None:
-            date = datetime.now()
-
-        # Handle string input (e.g., "2026-01-04")
-        if isinstance(date, str):
-            date_str = date
-        else:
-            # Handle both datetime and date objects
-            date_str = date.strftime("%Y-%m-%d")
-
-        start_datetime = f"{date_str}T00:00:00"
-        end_datetime = f"{date_str}T23:59:59"
-
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "DELETE FROM runs WHERE run_datetime >= ? AND run_datetime <= ?",
-                (start_datetime, end_datetime),
+                "DELETE FROM fetched_urls WHERE url = ?", (url,)
             )
             conn.commit()
             return cursor.rowcount
 
     def delete_all(self) -> int:
-        """Delete all runs from the database.
+        """Delete all fetched URLs from the database.
 
         Returns:
             Number of rows deleted
         """
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute("DELETE FROM runs")
+            cursor = conn.execute("DELETE FROM fetched_urls")
             conn.commit()
             return cursor.rowcount
 
-    def has_run_today(self, source_name: str) -> bool:
-        """Check if a source has run today.
+    def get_latest_fetches(self, limit: int = 100) -> list[tuple[str, str, str]]:
+        """Get the latest fetched URLs from the database.
 
         Args:
-            source_name: Name of the source to check
+            limit: Maximum number of URLs to return (default: 100)
 
         Returns:
-            True if the source has run today, False otherwise
-        """
-        today = datetime.now().strftime("%Y-%m-%d")
-        start_datetime = f"{today}T00:00:00"
-        end_datetime = f"{today}T23:59:59"
-
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                """
-                SELECT COUNT(*) FROM runs
-                WHERE source_name = ?
-                AND run_datetime >= ?
-                AND run_datetime <= ?
-                """,
-                (source_name, start_datetime, end_datetime),
-            )
-            count = cursor.fetchone()[0]
-            return count > 0
-
-    def get_latest_runs(self, limit: int = 100) -> list[tuple[str, str]]:
-        """Get the latest runs from the database.
-
-        Args:
-            limit: Maximum number of runs to return (default: 100)
-
-        Returns:
-            List of tuples (source_name, run_datetime) ordered by most recent first
+            List of tuples (url, source_name, fetch_datetime) ordered by most recent first
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 """
-                SELECT source_name, run_datetime
-                FROM runs
-                ORDER BY run_datetime DESC
+                SELECT url, source_name, fetch_datetime
+                FROM fetched_urls
+                ORDER BY fetch_datetime DESC
                 LIMIT ?
                 """,
                 (limit,),
@@ -227,10 +227,6 @@ class Navigate:
 
     def start(self):
         for job in self.jobs:
-            # Skip if this source has already run today
-            if self.run_tracker.has_run_today(job.name):
-                continue
-
             if not job.nav:
                 job.urls = [job.start]
                 continue
@@ -242,9 +238,6 @@ class Navigate:
                 current_navs = self.process_navigation_step(
                     job, current_navs, step_index, is_final
                 )
-
-            # Mark this source as run after successful navigation
-            self.run_tracker.add_run(job.name)
 
     def process_navigation_step(
         self, job: Job, current_navs: list[Nav], step_index: int, is_final: bool
@@ -324,16 +317,25 @@ class Dispatcher:
         self.navigate = Navigate(path, source_name=source_name)
         self.navigate.start()
         self.results: list[SourceResult] = []
+        self.run_tracker = RunTracker()
 
     def execute_jobs(self):
         for job in self.navigate.jobs:
 
             if not job.urls:
                 continue
+
+            # Filter out URLs that have already been fetched
+            unfetched_urls = self.run_tracker.filter_unfetched_urls(job.urls)
+
+            # Skip if all URLs have already been fetched
+            if not unfetched_urls:
+                continue
+
             page_results = []
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = []
-                for url in job.urls:
+                for url in unfetched_urls:
                     if job.extract_ftype == "html":
                         extractor = self.html_extract
                     elif job.extract_ftype == "rss":
@@ -349,6 +351,8 @@ class Dispatcher:
                     result = future.result()
                     if result:
                         page_results.append(result)
+                        # Mark this URL as fetched
+                        self.run_tracker.add_url(result.url, job.name)
 
             self.results.append(
                 SourceResult(source_name=job.name, results=page_results)

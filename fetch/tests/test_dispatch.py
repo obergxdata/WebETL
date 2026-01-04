@@ -178,28 +178,26 @@ def test_source_result_to_json_test(test_server, test_sources_yml):
         assert len(fields["title"]) > 0
 
 
-def test_run_tracker_prevents_duplicate_runs(test_server, test_sources_yml):
-    """Test that running the same source twice in one day skips the second run."""
+def test_run_tracker_prevents_duplicate_urls(test_server, test_sources_yml):
+    """Test that URLs are only fetched once, ever."""
     from fetch.dispatch import RunTracker
 
     # First run - should execute normally
     d1 = Dispatcher(path=test_sources_yml, source_name="test")
     d1.execute_jobs()
 
-    # Verify first run completed and recorded
+    # Verify first run completed and recorded 3 URLs
+    source_result_1 = d1.results[0]
+    assert len(source_result_1.results) == 3
+
+    # Verify URLs are tracked
     tracker = RunTracker()
-    assert tracker.has_run_today("test") is True
+    for page_result in source_result_1.results:
+        assert tracker.has_been_fetched(page_result.url) is True
 
-    # Get URLs from first run
-    first_run_jobs = d1.navigate.jobs
-    assert len(first_run_jobs) == 1
-    assert len(first_run_jobs[0].urls) == 3
-
-    # Second run - should skip navigation due to run tracker
+    # Second run - should skip fetching the same URLs
     d2 = Dispatcher(path=test_sources_yml, source_name="test")
     d2.execute_jobs()
 
-    # Verify second run was skipped (no URLs collected)
-    second_run_jobs = d2.navigate.jobs
-    assert len(second_run_jobs) == 1
-    assert second_run_jobs[0].urls is None  # URLs were never set because navigation was skipped
+    # Verify second run produced no results (all URLs already fetched)
+    assert len(d2.results) == 0

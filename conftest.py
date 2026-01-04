@@ -95,7 +95,7 @@ def cleanup_generated_test_files():
         tracker = RunTracker()
         import sqlite3
         with sqlite3.connect(tracker.db_path) as conn:
-            conn.execute("DELETE FROM runs WHERE source_name LIKE 'test%'")
+            conn.execute("DELETE FROM fetched_urls WHERE source_name LIKE 'test%'")
             conn.commit()
     except Exception as e:
         # Don't fail tests if cleanup fails
