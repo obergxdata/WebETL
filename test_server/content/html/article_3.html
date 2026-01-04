@@ -7,14 +7,28 @@
 </head>
 <body>
     <h1>Article 3: Web Scraping Best Practices</h1>
-    <p>When scraping websites, it's important to be respectful and follow best practices.
-    Always check robots.txt, rate-limit your requests, and handle errors gracefully.</p>
+    <div id="article-body">
+        <p>When scraping websites, it's important to be respectful and follow best practices.
+        Always check robots.txt, rate-limit your requests, and handle errors gracefully. Being a responsible web scraper
+        means understanding that every request you make consumes server resources and bandwidth. Implementing proper delays
+        between requests, respecting crawl-delay directives, and backing off when you receive error responses demonstrates
+        good citizenship in the web ecosystem and helps maintain positive relationships with content providers.</p>
 
-    <p>Consider using structured data formats like RSS feeds when available, as they are
-    designed for automated consumption and are more reliable than scraping HTML.</p>
+        <p>Consider using structured data formats like RSS feeds when available, as they are
+        designed for automated consumption and are more reliable than scraping HTML. These formats provide stable,
+        well-documented structures that are less likely to change unexpectedly compared to HTML layouts. When websites
+        offer APIs or RSS feeds, using them instead of HTML scraping results in more maintainable code, better performance,
+        and reduced risk of your scraper breaking due to website redesigns.</p>
 
-    <p><a href="article_3_appendix.html">View the appendix for ethical guidelines</a></p>
+        <p>Proper error handling and logging are crucial components of any web scraping system. Implement retry logic with
+        exponential backoff for transient failures, maintain detailed logs of your scraping activities, and monitor for
+        changes in website structure. Building robust scrapers that can adapt to minor changes and gracefully handle
+        unexpected situations will save you significant maintenance time and ensure reliable data collection over the
+        long term.</p>
 
-    <p><a href="home.html">Back to Home</a></p>
+        <p><a href="article_3_appendix.html">View the appendix for ethical guidelines</a></p>
+
+        <p><a href="home.html">Back to Home</a></p>
+    </div>
 </body>
 </html>

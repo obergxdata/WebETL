@@ -7,12 +7,25 @@
 </head>
 <body>
     <h1>Appendix: HTML Parsing Code Examples</h1>
-    <p>BeautifulSoup provides an intuitive API for navigating and searching HTML documents.
-    You can find elements by tag name, CSS selectors, or text content.</p>
+    <div id="article-body">
+        <p>BeautifulSoup provides an intuitive API for navigating and searching HTML documents.
+        You can find elements by tag name, CSS selectors, or text content. The library supports multiple search methods
+        including find(), find_all(), select(), and navigating the parse tree using parent, children, and sibling
+        relationships. This flexibility makes it easy to extract exactly the data you need, whether you're looking for
+        specific elements, patterns of content, or navigating complex document structures programmatically.</p>
 
-    <p>The parser choice matters for performance and accuracy. lxml is fastest but strict,
-    while html5lib matches browser behavior but is slower.</p>
+        <p>The parser choice matters for performance and accuracy. lxml is fastest but strict,
+        while html5lib matches browser behavior but is slower. When working with well-formed HTML from trusted sources,
+        lxml's speed advantage can significantly reduce processing time for large datasets. However, when dealing with
+        user-generated content or legacy websites with malformed markup, html5lib's lenient parsing and browser-compatible
+        behavior ensures you get consistent results that match what users see in their browsers.</p>
 
-    <p><a href="article_2.html">Back to Article 2</a></p>
+        <p>Practical parsing often involves combining these tools with regular expressions for text extraction, handling
+        edge cases like nested tags or dynamic content markers, and implementing robust error handling for unexpected
+        document structures. Building a parsing strategy that balances performance, reliability, and maintainability
+        requires understanding both your data sources and the strengths of each parsing library available.</p>
+
+        <p><a href="article_2.html">Back to Article 2</a></p>
+    </div>
 </body>
 </html>

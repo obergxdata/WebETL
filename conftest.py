@@ -53,3 +53,17 @@ def test_sources_yml(test_server):
 
     # Cleanup
     Path(temp_file.name).unlink()
+
+
+@pytest.fixture
+def dispatch_all_sources(test_sources_yml):
+    """
+    Fixture that runs the whole dispatch flow for all sources (no specific source_name).
+    Returns a Dispatcher instance with all sources executed.
+    """
+    from fetch.dispatch import Dispatcher
+
+    dispatcher = Dispatcher(path=test_sources_yml, source_name=None)
+    dispatcher.execute_jobs()
+
+    return dispatcher

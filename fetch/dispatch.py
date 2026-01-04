@@ -41,7 +41,9 @@ class SourceResult:
 
     def save(self) -> None:
         today = datetime.now().strftime("%Y-%m-%d")
-        output_dir = Path(f"data/raw/{today}")
+        # Use absolute path from the project root (where conftest.py is located)
+        project_root = Path(__file__).parent.parent
+        output_dir = project_root / "data" / "raw" / today
         output_dir.mkdir(parents=True, exist_ok=True)
 
         file_path = output_dir / f"{self.source_name}.json"
@@ -219,3 +221,7 @@ class Dispatcher:
         return PageResult(
             url=url, fields=[Extraction(name="content", data="".join(extractions))]
         )
+
+    def save_results(self) -> None:
+        for source_result in self.results:
+            source_result.save()

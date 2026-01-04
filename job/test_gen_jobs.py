@@ -16,7 +16,11 @@ def test_generate_jobs_test():
         Field(
             name="title",
             selector="/html/body/h1",
-        )
+        ),
+        Field(
+            name="body",
+            selector="//div[@id='article-body']",
+        ),
     ]
     assert job.nav == [
         Nav(
@@ -26,7 +30,7 @@ def test_generate_jobs_test():
         ),
         Nav(
             url=None,
-            selector="/html/body/p[3]/a/@href",
+            selector="//div[@id='article-body']/p[4]/a/@href",
             ftype="html",
         ),
     ]
@@ -47,7 +51,11 @@ def test_generate_jobs_test_rss_html():
         Field(
             name="title",
             selector="/html/body/h1",
-        )
+        ),
+        Field(
+            name="body",
+            selector="//div[@id='article-body']",
+        ),
     ]
     assert job.nav == [
         Nav(
@@ -57,7 +65,7 @@ def test_generate_jobs_test_rss_html():
         ),
         Nav(
             url=None,
-            selector="/html/body/p[3]/a/@href",
+            selector="//div[@id='article-body']/p[4]/a/@href",
             ftype="html",
         ),
     ]
@@ -78,9 +86,13 @@ def test_generate_jobs_test_only_rss():
         extract_ftype="rss",
         extract=[
             Field(
+                name="title",
+                selector="title",
+            ),
+            Field(
                 name="description",
                 selector="description",
-            )
+            ),
         ],
         nav=[],
     )
@@ -106,7 +118,7 @@ def test_generate_jobs_test_rss_html_pdf():
         ),
         Nav(
             url=None,
-            selector="/html/body/p[4]/a/@href",
+            selector="//div[@id='article-body']/p[5]/a/@href",
             ftype="html",
             must_contain=[".pdf"],
         ),

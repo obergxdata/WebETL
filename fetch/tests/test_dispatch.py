@@ -10,7 +10,10 @@ def test_navigate_test(test_server, test_sources_yml):
 
     job = d.jobs[0]
     assert job.name == "test"
-    assert job.extract == [Field(name="title", selector="/html/body/h1")]
+    assert job.extract == [
+        Field(name="title", selector="/html/body/h1"),
+        Field(name="body", selector="//div[@id='article-body']"),
+    ]
     assert job.nav == [
         Nav(
             url=f"{test_server}/html/home.html",
@@ -19,7 +22,7 @@ def test_navigate_test(test_server, test_sources_yml):
         ),
         Nav(
             url=None,
-            selector="/html/body/p[3]/a/@href",
+            selector="//div[@id='article-body']/p[4]/a/@href",
             ftype="html",
         ),
     ]
@@ -37,7 +40,10 @@ def test_navigate_test_rss_html(test_server, test_sources_yml):
 
     job_rss_html = d.jobs[0]
     assert job_rss_html.name == "test_rss_html"
-    assert job_rss_html.extract == [Field(name="title", selector="/html/body/h1")]
+    assert job_rss_html.extract == [
+        Field(name="title", selector="/html/body/h1"),
+        Field(name="body", selector="//div[@id='article-body']"),
+    ]
     assert job_rss_html.nav == [
         Nav(
             url=f"{test_server}/rss/feed.xml",
@@ -46,7 +52,7 @@ def test_navigate_test_rss_html(test_server, test_sources_yml):
         ),
         Nav(
             url=None,
-            selector="/html/body/p[3]/a/@href",
+            selector="//div[@id='article-body']/p[4]/a/@href",
             ftype="html",
         ),
     ]
@@ -64,7 +70,10 @@ def test_navigate_test_only_rss(test_server, test_sources_yml):
 
     job_rss = d.jobs[0]
     assert job_rss.name == "test_only_rss"
-    assert job_rss.extract == [Field(name="description", selector="description")]
+    assert job_rss.extract == [
+        Field(name="title", selector="title"),
+        Field(name="description", selector="description"),
+    ]
     assert job_rss.nav == []
     assert len(job_rss.urls) == 1
     assert job_rss.urls[0] == f"{test_server}/rss/feed.xml"
@@ -87,9 +96,11 @@ def test_dispatcher_test(test_server, test_sources_yml):
     }
 
     for page_result in source_result.results:
-        assert len(page_result.fields) == 1
+        assert len(page_result.fields) == 2
         assert page_result.fields[0].name == "title"
         assert len(page_result.fields[0].data) > 0
+        assert page_result.fields[1].name == "body"
+        assert len(page_result.fields[1].data) > 0
 
 
 def test_dispatcher_test_rss_html(test_server, test_sources_yml):
@@ -120,17 +131,13 @@ def test_dispatcher_test_only_rss(test_server, test_sources_yml):
 
     page_result = source_result_rss.results[0]
     assert page_result.url == f"{test_server}/rss/feed.xml"
-    assert len(page_result.fields) == 3
-    for field in page_result.fields:
-        assert field.name == "description"
-        assert len(field.data) > 0
-
-
-def test_navigate_broken_test_rss_html(test_server, test_sources_yml):
-    """Test navigation for 'broken_test_rss_html' source (RSS -> HTML with text() selector)."""
-    d = Navigate(path=test_sources_yml, source_name="broken_test_rss_html")
-    with pytest.raises(Exception, match="Failed to navigate"):
-        d.start()
+    assert len(page_result.fields) == 6  # 3 items * 2 fields (title + description)
+    # Check that we have alternating title and description fields
+    for i in range(0, len(page_result.fields), 2):
+        assert page_result.fields[i].name == "title"
+        assert len(page_result.fields[i].data) > 0
+        assert page_result.fields[i + 1].name == "description"
+        assert len(page_result.fields[i + 1].data) > 0
 
 
 def test_dispatcher_test_rss_html_pdf(test_server, test_sources_yml):

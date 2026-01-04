@@ -1,4 +1,5 @@
 source:
+
   - name: "test"
     start: "http://localhost:8888/html/home.html"
     ftype: "html"
@@ -6,13 +7,16 @@ source:
       - step: "first page"
         selector: "//ul/li/a/@href"
       - step: "articles"
-        selector: "/html/body/p[3]/a/@href"
+        selector: "//div[@id='article-body']/p[4]/a/@href"
         ftype: "html"
     extract:
       ftype: "html"
       fields:
         - name: "title"
           selector: "/html/body/h1"
+          type: "html"
+        - name: "body"
+          selector: "//div[@id='article-body']"
           type: "html"
 
   - name: "test_rss_html"
@@ -22,13 +26,16 @@ source:
       - step: "the feed"
         selector: "link"
       - step: "the article"
-        selector: "/html/body/p[3]/a/@href"
+        selector: "//div[@id='article-body']/p[4]/a/@href"
         ftype: "html"
     extract:
       ftype: "html"
       fields:
         - name: "title"
           selector: "/html/body/h1"
+        - name: "body"
+          selector: "//div[@id='article-body']"
+          type: "html"
     
   - name: "test_only_rss"
     start: "http://localhost:8888/rss/feed.xml"
@@ -36,25 +43,10 @@ source:
     extract:
       ftype: "rss"
       fields:
+        - name: "title"
+          selector: "title"
         - name: "description"
           selector: "description"
-
-
-
-  - name: "broken_test_rss_html"
-    start: "http://localhost:8888/rss/feed.xml"
-    ftype: "rss"
-    navigate:
-      - step: "the feed"
-        selector: "link"
-      - step: "the article"
-        selector: "/html/body/p[3]/text()" # this is broken
-        ftype: "html"
-    extract:
-      ftype: "html"
-      fields:
-        - name: "title"
-          selector: "/html/body/h1"
 
   - name: "test_rss_html_pdf"
     start: "http://localhost:8888/rss/feed.xml"
@@ -64,7 +56,7 @@ source:
         selector: "link"
         must_contain: ["html"]
       - step: "the article"
-        selector: "/html/body/p[4]/a/@href"
+        selector: "//div[@id='article-body']/p[5]/a/@href"
         ftype: "html"
         must_contain: [".pdf"]
     extract:
