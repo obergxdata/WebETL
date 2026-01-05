@@ -34,9 +34,18 @@ source:
         - name: "body"
           selector: "//div[@id='article-body']"
     analyze:
-      - type: "summarize"
-        fields: ["body", "title"]
-    
+      LLM:
+      - name: "summarize"
+        input: ["body", "title"]
+        output: "article_summary"
+        model: "gpt-4"
+        prompt: "Summarize the following article in a concise manner."
+      - name: "sentiment"
+        input: ["article_summary", "title"]
+        output: "title_sentiment"
+        model: "gpt-4"
+        prompt: "Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral."
+
   - name: "test_only_rss"
     start: "http://localhost:8888/rss/feed.xml"
     extract:
@@ -46,6 +55,13 @@ source:
           selector: "title"
         - name: "description"
           selector: "description"
+    analyze:
+      LLM:
+      - name: "sentiment"
+        input: ["title"]
+        output: "title_sentiment"
+        model: "gpt-4"
+        prompt: "Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral."
 
   - name: "test_rss_html_pdf"
     start: "http://localhost:8888/rss/feed.xml"

@@ -11,6 +11,9 @@ import json
 from io import BytesIO
 import pypdfium2 as pdfium
 import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RunTracker:
@@ -76,31 +79,40 @@ class RunTracker:
             )
             conn.commit()
 
-    def has_been_fetched(self, url: str) -> bool:
-        """Check if a URL has ever been fetched.
+    def has_been_fetched(self, url: str, source_name: str = None) -> bool:
+        """Check if a URL has been fetched for a specific source.
 
         Args:
             url: The URL to check
+            source_name: Optional source name. If provided, checks if this specific
+                        source has fetched the URL. If None, checks globally.
 
         Returns:
             True if the URL has been fetched before, False otherwise
         """
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                "SELECT COUNT(*) FROM fetched_urls WHERE url = ?",
-                (url,),
-            )
+            if source_name:
+                cursor = conn.execute(
+                    "SELECT COUNT(*) FROM fetched_urls WHERE url = ? AND source_name = ?",
+                    (url, source_name),
+                )
+            else:
+                cursor = conn.execute(
+                    "SELECT COUNT(*) FROM fetched_urls WHERE url = ?",
+                    (url,),
+                )
             count = cursor.fetchone()[0]
             return count > 0
 
-    def filter_unfetched_urls(self, urls: list[str]) -> list[str]:
-        """Filter out URLs that have already been fetched.
+    def filter_unfetched_urls(self, urls: list[str], source_name: str) -> list[str]:
+        """Filter out URLs that have already been fetched by this specific source.
 
         Args:
             urls: List of URLs to filter
+            source_name: Name of the source doing the fetching
 
         Returns:
-            List of URLs that have not been fetched yet
+            List of URLs that have not been fetched by this source yet
         """
         if not urls:
             return []
@@ -108,8 +120,8 @@ class RunTracker:
         placeholders = ",".join("?" * len(urls))
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                f"SELECT url FROM fetched_urls WHERE url IN ({placeholders})",
-                urls,
+                f"SELECT url FROM fetched_urls WHERE url IN ({placeholders}) AND source_name = ?",
+                (*urls, source_name),
             )
             fetched_urls = {row[0] for row in cursor.fetchall()}
 
@@ -215,8 +227,11 @@ class SourceResult:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         file_path = output_dir / f"{self.source_name}.json"
+        logger.info(f"Saving raw data for {self.source_name} to {file_path}")
+        logger.info(f"Number of page results: {len(self.results)}")
         with open(file_path, "w") as f:
             json.dump(self.to_json(), f, indent=2)
+        logger.info(f"Successfully saved {self.source_name} to {file_path}")
 
 
 class Navigate:
@@ -320,17 +335,21 @@ class Dispatcher:
 
     def execute_jobs(self):
         for job in self.navigate.jobs:
+            logger.info(f"Processing job: {job.name}")
 
             if not job.urls:
+                logger.warning(f"No URLs found for job: {job.name}")
                 continue
 
-            # Filter out URLs that have already been fetched
-            unfetched_urls = self.run_tracker.filter_unfetched_urls(job.urls)
+            # Filter out URLs that have already been fetched by this source
+            unfetched_urls = self.run_tracker.filter_unfetched_urls(job.urls, job.name)
 
-            # Skip if all URLs have already been fetched
+            # Skip if all URLs have already been fetched by this source
             if not unfetched_urls:
+                logger.info(f"All URLs already fetched for job: {job.name}")
                 continue
 
+            logger.info(f"Fetching {len(unfetched_urls)} URLs for {job.name}")
             page_results = []
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = []
@@ -353,6 +372,7 @@ class Dispatcher:
                         # Mark this URL as fetched
                         self.run_tracker.add_url(result.url, job.name)
 
+            logger.info(f"Collected {len(page_results)} page results for {job.name}")
             self.results.append(
                 SourceResult(source_name=job.name, results=page_results)
             )

@@ -82,6 +82,15 @@ def cleanup_generated_test_files():
             if not any(raw_data_dir.iterdir()):
                 raw_data_dir.rmdir()
 
+        # Remove silver data JSON files for test sources (files starting with test or test_)
+        silver_data_dir = root_dir / "data" / "silver" / today
+        if silver_data_dir.exists():
+            for json_file in silver_data_dir.glob("test*.json"):
+                json_file.unlink()
+            # Remove directory if empty
+            if not any(silver_data_dir.iterdir()):
+                silver_data_dir.rmdir()
+
         # Remove job pickle files for test sources (files starting with test or test_)
         jobs_dir = root_dir / "data" / "jobs" / today
         if jobs_dir.exists():
