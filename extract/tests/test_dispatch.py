@@ -1,4 +1,4 @@
-from fetch.dispatch import Navigate, Dispatcher
+from extract.dispatch import Navigate, Dispatcher
 from source.source_manager import Nav, Field
 import pytest
 

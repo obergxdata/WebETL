@@ -1,7 +1,5 @@
 from source.source_manager import Job
-from pathlib import Path
-import pickle
-import json
+from source.data_manager import DataManager
 import logging
 import os
 from openai import OpenAI
@@ -12,83 +10,26 @@ logger = logging.getLogger(__name__)
 class Transform:
 
     def __init__(self, data_date: str):
-        self.data_date = data_date
-        # Get absolute paths to data directories
-        analyze_dir = Path(__file__).parent
-        root_dir = analyze_dir.parent
-        self.jobs_dir = root_dir / "data" / "jobs" / self.data_date
-        self.raw_data_dir = root_dir / "data" / "raw" / self.data_date
-        self.silver_data_dir = root_dir / "data" / "silver" / self.data_date
-        # Create silver directory if it doesn't exist
-        self.silver_data_dir.mkdir(parents=True, exist_ok=True)
-
-    def _load_job(self, pkl_file: Path) -> Job | None:
-        """Load a single job from a pickle file.
-
-        Args:
-            pkl_file: Path to the pickle file
-
-        Returns:
-            Job object if analyze is truthy, None otherwise
-        """
-        with open(pkl_file, "rb") as f:
-            job = pickle.load(f)
-            return job
-        return None
-
-    def _load_raw_data(self, source_name: str) -> dict | None:
-        """Load raw data JSON file for a single source.
-
-        Args:
-            source_name: Name of the source
-
-        Returns:
-            dict: Raw data dictionary, or None if file doesn't exist
-        """
-        json_file = self.raw_data_dir / f"{source_name}.json"
-        if json_file.exists():
-            with open(json_file, "r") as f:
-                return json.load(f)
-        return None
-
-    def _save_to_silver(self, job_name: str, raw_data: dict):
-        """Save raw data directly to silver directory without analysis.
-
-        Args:
-            job_name: Name of the job/source
-            raw_data: Raw data to save
-        """
-        silver_file = self.silver_data_dir / f"{job_name}.json"
-        with open(silver_file, "w") as f:
-            json.dump(raw_data, f, indent=2)
-        logger.info(f"Saved {job_name} to silver (no transform needed)")
+        self.dm = DataManager(data_date)
 
     def process_jobs(self):
-        logger.info(f"Processing jobs for date: {self.data_date}")
-        if not self.jobs_dir.exists():
-            logger.error(f"Jobs directory does not exist: {self.jobs_dir}")
+        logger.info(f"Processing jobs for date: {self.dm.data_date}")
+        if not self.dm.jobs_dir.exists():
+            logger.error(f"Jobs directory does not exist: {self.dm.jobs_dir}")
             return
 
         # Loop through each job file
-        for pkl_file in self.jobs_dir.glob("*.pkl"):
-            job_name = pkl_file.stem  # filename without extension
-
-            # Load the job
-            job = self._load_job(pkl_file)
-            if job is None:
-                continue
-
+        for job_name, job in self.dm.iter_pickles(self.dm.jobs_dir):
             # Load corresponding raw data
-            raw_data = self._load_raw_data(job_name)
+            raw_data = self.dm.load_json(job_name, layer="raw")
             if raw_data is None:
-                logger.warning(
-                    f"No raw data found for {job_name} at {self.raw_data_dir / f'{job_name}.json'}"
-                )
+                logger.warning(f"No raw data found for {job_name}")
                 continue
 
             # If transform is False, save directly to silver
             if not job.transform:
-                self._save_to_silver(job_name, raw_data)
+                self.dm.save_json(raw_data, job_name, layer="silver")
+                logger.info(f"Saved {job_name} to silver (no transform needed)")
                 continue
 
             # Process this job with its raw data
@@ -122,13 +63,15 @@ class Transform:
 
         # Call OpenAI API
         try:
-            logger.info(f"Calling OpenAI API for step '{llm_step['name']}' with model {llm_step['model']}")
+            logger.info(
+                f"Calling OpenAI API for step '{llm_step['name']}' with model {llm_step['model']}"
+            )
             response = client.chat.completions.create(
                 model=llm_step["model"],
                 messages=[
                     {"role": "system", "content": llm_step["prompt"]},
-                    {"role": "user", "content": doc}
-                ]
+                    {"role": "user", "content": doc},
+                ],
             )
             result = response.choices[0].message.content
             logger.info(f"Received response for step '{llm_step['name']}'")
@@ -171,18 +114,15 @@ class Transform:
 
             # Apply each LLM step sequentially
             for llm_step in llm_steps:
-                processed_data = self._process_llm_step(processed_data, llm_step, client)
+                processed_data = self._process_llm_step(
+                    processed_data, llm_step, client
+                )
 
             processed_results[url] = processed_data
 
         # Create final output structure
-        output = {
-            "source": raw["source"],
-            "result": processed_results
-        }
+        output = {"source": raw["source"], "result": processed_results}
 
         # Save to silver
-        silver_file = self.silver_data_dir / f"{job.name}.json"
-        with open(silver_file, "w") as f:
-            json.dump(output, f, indent=2)
+        self.dm.save_json(output, job.name, layer="silver")
         logger.info(f"Saved transformed data for {job.name} to silver")

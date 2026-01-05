@@ -1,13 +1,13 @@
 from source.source_manager import Source, Nav, Job
-from fetch.http import visit_html
-from fetch.rss import visit_rss
+from source.data_manager import DataManager
+from extract.http import visit_html
+from extract.rss import visit_rss
 from lxml import html as lxml_html
 from urllib.parse import urljoin, quote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
-import json
 from io import BytesIO
 import pypdfium2 as pdfium
 import sqlite3
@@ -59,7 +59,9 @@ class RunTracker:
             )
             conn.commit()
 
-    def add_url(self, url: str, source_name: str, fetch_datetime: datetime = None) -> None:
+    def add_url(
+        self, url: str, source_name: str, fetch_datetime: datetime = None
+    ) -> None:
         """Add a fetched URL record to the database.
 
         Args:
@@ -153,9 +155,7 @@ class RunTracker:
             Number of rows deleted
         """
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                "DELETE FROM fetched_urls WHERE url = ?", (url,)
-            )
+            cursor = conn.execute("DELETE FROM fetched_urls WHERE url = ?", (url,))
             conn.commit()
             return cursor.rowcount
 
@@ -220,17 +220,10 @@ class SourceResult:
         return {"source": self.source_name, "result": result_dict}
 
     def save(self) -> None:
-        today = datetime.now().strftime("%Y-%m-%d")
-        # Use absolute path from the project root (where conftest.py is located)
-        project_root = Path(__file__).parent.parent
-        output_dir = project_root / "data" / "raw" / today
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        file_path = output_dir / f"{self.source_name}.json"
-        logger.info(f"Saving raw data for {self.source_name} to {file_path}")
+        dm = DataManager()  # Uses today's date
+        logger.info(f"Saving raw data for {self.source_name}")
         logger.info(f"Number of page results: {len(self.results)}")
-        with open(file_path, "w") as f:
-            json.dump(self.to_json(), f, indent=2)
+        file_path = dm.save_json(self.to_json(), self.source_name, layer="raw")
         logger.info(f"Successfully saved {self.source_name} to {file_path}")
 
 

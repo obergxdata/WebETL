@@ -63,7 +63,7 @@ def cleanup_generated_test_files():
     Removes all files starting with 'test_' prefix and test run records from database.
     """
     from datetime import datetime
-    from fetch.dispatch import RunTracker
+    from extract.dispatch import RunTracker
 
     # Setup: nothing needed before test
     yield
@@ -71,7 +71,7 @@ def cleanup_generated_test_files():
     # Teardown: clean up after test completes
     try:
         today = datetime.now().strftime("%Y-%m-%d")
-        root_dir = Path(__file__).parent
+        root_dir = Path.cwd()
 
         # Remove raw data JSON files for test sources (files starting with test or test_)
         raw_data_dir = root_dir / "data" / "raw" / today
@@ -91,6 +91,17 @@ def cleanup_generated_test_files():
             if not any(silver_data_dir.iterdir()):
                 silver_data_dir.rmdir()
 
+        # Remove gold data files for test sources (files starting with test or test_)
+        gold_data_dir = root_dir / "data" / "gold" / today
+        if gold_data_dir.exists():
+            for file in gold_data_dir.glob("test*.json"):
+                file.unlink()
+            for file in gold_data_dir.glob("test*.xml"):
+                file.unlink()
+            # Remove directory if empty
+            if not any(gold_data_dir.iterdir()):
+                gold_data_dir.rmdir()
+
         # Remove job pickle files for test sources (files starting with test or test_)
         jobs_dir = root_dir / "data" / "jobs" / today
         if jobs_dir.exists():
@@ -101,6 +112,7 @@ def cleanup_generated_test_files():
                 jobs_dir.rmdir()
 
         # Remove test run records from database
+        from extract.dispatch import RunTracker
         tracker = RunTracker()
         import sqlite3
         with sqlite3.connect(tracker.db_path) as conn:
@@ -117,9 +129,32 @@ def dispatch_all_sources(test_sources_yml):
     Fixture that runs the whole dispatch flow for all sources (no specific source_name).
     Returns a Dispatcher instance with all sources executed.
     """
-    from fetch.dispatch import Dispatcher
+    from extract.dispatch import Dispatcher
 
     dispatcher = Dispatcher(path=test_sources_yml, source_name=None)
     dispatcher.execute_jobs()
 
     return dispatcher
+
+
+@pytest.fixture
+def dispatch_transform_all_sources(test_sources_yml):
+    """
+    Fixture that runs both dispatch and transform for all sources.
+    Returns a tuple of (Dispatcher, Transform) instances.
+    """
+    from extract.dispatch import Dispatcher
+    from transform.transform import Transform
+    from datetime import datetime
+
+    # Run dispatch
+    dispatcher = Dispatcher(path=test_sources_yml, source_name=None)
+    dispatcher.execute_jobs()
+    dispatcher.save_results()
+
+    # Run transform
+    data_date = datetime.now().strftime("%Y-%m-%d")
+    transform = Transform(data_date)
+    transform.process_jobs()
+
+    return dispatcher, transform

@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rssify"
+version = "0.1.0"
+description = "A flexible RSS and web content extraction, transformation, and loading pipeline"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "ObergXData", email = "obergxdata@gmail.com"}
+]
+keywords = ["rss", "web scraping", "etl", "data pipeline", "content extraction"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+
+dependencies = [
+    "lxml>=4.9.0",
+    "requests>=2.31.0",
+    "feedparser>=6.0.0",
+    "PyYAML>=6.0",
+    "openai>=1.0.0",
+    "pypdfium2>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.11.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/rssify"
+Documentation = "https://github.com/yourusername/rssify#readme"
+Repository = "https://github.com/yourusername/rssify"
+Issues = "https://github.com/yourusername/rssify/issues"
+
+[project.scripts]
+rssify = "rssify.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rssify*"]
+exclude = ["test*", "data*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"

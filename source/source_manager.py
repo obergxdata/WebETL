@@ -2,8 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from dataclasses import dataclass
 import yaml
-import pickle
-from datetime import datetime
+from source.data_manager import DataManager
 
 
 @dataclass
@@ -22,6 +21,7 @@ class Job:
     nav: list[Nav]
     urls: list[str] | None = None
     transform: list[dict] | None = None
+    load: dict | None = None
 
 
 @dataclass
@@ -92,6 +92,7 @@ class Source:
                     nav=navs,
                     start=source_conf["start"],
                     transform=source_conf.get("transform", []),
+                    load=source_conf.get("load", None),
                 )
             )
 
@@ -102,22 +103,13 @@ class Source:
 
     def save_jobs(self):
         """Save jobs as pickle files using absolute path: root/data/jobs/YYYY-MM-DD/name.pkl"""
-        # Get the root directory (parent of source directory)
-        source_dir = Path(__file__).parent
-        root_dir = source_dir.parent
-        today = datetime.now().strftime("%Y-%m-%d")
-
-        # Create the date-based directory
-        save_dir = root_dir / "data" / "jobs" / today
-        save_dir.mkdir(parents=True, exist_ok=True)
+        dm = DataManager()  # Uses today's date
 
         # Save each job as a pickle file
         for job in self.jobs:
-            file_path = save_dir / f"{job.name}.pkl"
-            with open(file_path, "wb") as f:
-                pickle.dump(job, f)
+            dm.save_pickle(job, job.name, dm.jobs_dir)
 
-        return save_dir
+        return dm.jobs_dir
 
     def __getitem__(self, index):
         return self.jobs[index]

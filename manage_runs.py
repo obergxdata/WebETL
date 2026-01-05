@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""CLI tool for managing fetched URLs tracking."""
+"""CLI tool for managing extracted URLs tracking."""
 
 import sys
-from fetch.dispatch import RunTracker
+from extract.dispatch import RunTracker
 
 
 def main():

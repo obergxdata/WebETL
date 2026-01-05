@@ -8,7 +8,7 @@ test-server-kill:
 	@lsof -ti:8888 | xargs kill -9 2>/dev/null && echo "Test server killed" || echo "No server running on port 8888"
 
 tests:
-	@python -m pytest source/tests/test_source_manager.py fetch/tests/test_dispatch.py -v analyze/tests/test_analyze.py
+	@python -m pytest source/tests/test_source_manager.py extract/tests/test_dispatch.py transform/tests/test_transform.py load/tests/test_load.py
 
 clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true

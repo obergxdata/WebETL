@@ -95,7 +95,25 @@ def test_generate_jobs_test_only_rss(test_sources_yml):
             ),
         ],
         nav=[],
-        analyze=[],
+        transform={
+            "LLM": [
+                {
+                    "name": "sentiment",
+                    "input": ["title"],
+                    "output": "title_sentiment",
+                    "model": "gpt-4",
+                    "prompt": "Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral.",
+                }
+            ]
+        },
+        load={
+            "json": {
+                "fields": [
+                    {"field": "title", "name": "title"},
+                    {"field": "title", "name": "description"},
+                ]
+            }
+        },
     )
 
 
