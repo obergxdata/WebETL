@@ -9,7 +9,7 @@ from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 
-class Analyze:
+class Transform:
 
     def __init__(self, data_date: str):
         self.data_date = data_date
@@ -61,7 +61,7 @@ class Analyze:
         silver_file = self.silver_data_dir / f"{job_name}.json"
         with open(silver_file, "w") as f:
             json.dump(raw_data, f, indent=2)
-        logger.info(f"Saved {job_name} to silver (no analysis needed)")
+        logger.info(f"Saved {job_name} to silver (no transform needed)")
 
     def process_jobs(self):
         logger.info(f"Processing jobs for date: {self.data_date}")
@@ -86,14 +86,14 @@ class Analyze:
                 )
                 continue
 
-            # If analyze is False, save directly to silver
-            if not job.analyze:
+            # If transform is False, save directly to silver
+            if not job.transform:
                 self._save_to_silver(job_name, raw_data)
                 continue
 
             # Process this job with its raw data
             logger.info(f"Processing {job_name}...")
-            self.analyze(raw_data, job)
+            self.transform(raw_data, job)
 
     def _process_llm_step(self, data: dict, llm_step: dict, client: OpenAI) -> dict:
         """Process a single LLM step on the data.
@@ -141,14 +141,14 @@ class Analyze:
 
         return data
 
-    def analyze(self, raw: dict, job: Job):
-        """Analyze a single job with its raw data using LLM steps.
+    def transform(self, raw: dict, job: Job):
+        """Transform a single job with its raw data using LLM steps.
 
         Args:
             raw: Raw data dictionary from JSON file (structure: {source: str, result: {url: {fields}}})
-            job: Job object with configuration including analyze.LLM steps
+            job: Job object with configuration including transform.LLM steps
         """
-        if not job.analyze or "LLM" not in job.analyze:
+        if not job.transform or "LLM" not in job.transform:
             logger.warning(f"No LLM steps defined for job {job.name}")
             return
 
@@ -159,7 +159,7 @@ class Analyze:
             return
 
         client = OpenAI(api_key=api_key)
-        llm_steps = job.analyze["LLM"]
+        llm_steps = job.transform["LLM"]
 
         # Process each URL's data
         result_data = raw.get("result", {})
@@ -185,4 +185,4 @@ class Analyze:
         silver_file = self.silver_data_dir / f"{job.name}.json"
         with open(silver_file, "w") as f:
             json.dump(output, f, indent=2)
-        logger.info(f"Saved analyzed data for {job.name} to silver")
+        logger.info(f"Saved transformed data for {job.name} to silver")

@@ -33,7 +33,7 @@ source:
           selector: "/html/body/h1"
         - name: "body"
           selector: "//div[@id='article-body']"
-    analyze:
+    transform:
       LLM:
       - name: "summarize"
         input: ["body", "title"]
@@ -55,7 +55,7 @@ source:
           selector: "title"
         - name: "description"
           selector: "description"
-    analyze:
+    transform:
       LLM:
       - name: "sentiment"
         input: ["title"]

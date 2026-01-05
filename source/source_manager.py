@@ -21,7 +21,7 @@ class Job:
     extract_ftype: str
     nav: list[Nav]
     urls: list[str] | None = None
-    analyze: list[dict] | None = None
+    transform: list[dict] | None = None
 
 
 @dataclass
@@ -91,7 +91,7 @@ class Source:
                     extract=fields,
                     nav=navs,
                     start=source_conf["start"],
-                    analyze=source_conf.get("analyze", []),
+                    transform=source_conf.get("transform", []),
                 )
             )
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from analyze.analyze import Analyze
+from transform.transform import Transform
 from pathlib import Path
 import json
 
@@ -7,12 +7,12 @@ import json
 DATA_DATE = datetime.now().strftime("%Y-%m-%d")
 
 
-def test_analyze(dispatch_all_sources):
-    """Test the analyze function with all sources dispatched."""
+def test_transform(dispatch_all_sources):
+    """Test the transform function with all sources dispatched."""
     dispatcher = dispatch_all_sources
     dispatcher.save_results()
-    analyzer = Analyze(data_date=DATA_DATE)
-    analyzer.process_jobs()
+    transformer = Transform(data_date=DATA_DATE)
+    transformer.process_jobs()
 
     # Verify silver files exist and contain expected keys
     root_dir = Path(__file__).parent.parent.parent
