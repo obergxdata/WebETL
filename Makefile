@@ -1,40 +1,53 @@
-.PHONY: server test clean test-server-kill last-fetches has-fetched delete-source delete-url delete-all-fetches reset-all
+.PHONY: install install-dev test clean test-server test-server-kill build help
+
+help:
+	@echo "WebETL - Developer Commands"
+	@echo ""
+	@echo "Setup:"
+	@echo "  make install          Install package in editable mode"
+	@echo "  make install-dev      Install with dev dependencies"
+	@echo ""
+	@echo "Development:"
+	@echo "  make test             Run all tests"
+	@echo "  make test-server      Start test server on port 8888"
+	@echo "  make test-server-kill Kill test server"
+	@echo "  make clean            Clean cache directories"
+	@echo ""
+	@echo "Package:"
+	@echo "  make build            Build the package"
+	@echo ""
+	@echo "User Commands (via CLI):"
+	@echo "  webetl fetches        Show recent fetches"
+	@echo "  webetl --help         See all CLI commands"
+
+install:
+	pip install -e .
+
+install-dev:
+	pip install -e ".[dev]"
+
+test:
+	python -m pytest source/tests/test_source_manager.py extract/tests/test_dispatch.py transform/tests/test_transform.py load/tests/test_load.py
 
 test-server:
-	@python -m test_server.server
+	python -m test_server.server
 
 test-server-kill:
 	@echo "Killing test server on port 8888..."
 	@lsof -ti:8888 | xargs kill -9 2>/dev/null && echo "Test server killed" || echo "No server running on port 8888"
 
-tests:
-	@python -m pytest source/tests/test_source_manager.py extract/tests/test_dispatch.py transform/tests/test_transform.py load/tests/test_load.py
-
 clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	@echo "Cleaned up cache directories"
+	@find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "dist" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "build" -exec rm -rf {} + 2>/dev/null || true
+	@echo "Cleaned up cache and build directories"
 
-# URL tracking commands
-fetches:
-	@python manage_runs.py last-fetches
+build:
+	python -m build
 
-fetches-%:
-	@python manage_runs.py last-fetches $*
-
-has-fetched:
-	@python manage_runs.py has-fetched $(URL)
-
-delete-source:
-	@python manage_runs.py delete-source $(SOURCE)
-
-delete-url:
-	@python manage_runs.py delete-url $(URL)
-
-delete-all-fetches:
-	@echo "WARNING: This will delete ALL fetched URL history."
-	@read -p "Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] && python manage_runs.py delete-all || echo "Cancelled"
-
+# Dangerous commands (use with caution)
 reset-all:
 	@echo "WARNING: This will delete ALL data (raw files, jobs, fetched URLs database)."
 	@read -p "Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] && rm -rf data/* && echo "All data deleted" || echo "Cancelled"

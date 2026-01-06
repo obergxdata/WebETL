@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rssify"
+name = "webetl"
 version = "0.1.0"
-description = "A flexible RSS and web content extraction, transformation, and loading pipeline"
+description = "A flexible web content extraction, transformation, and loading (ETL) pipeline"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -31,6 +31,7 @@ dependencies = [
     "PyYAML>=6.0",
     "openai>=1.0.0",
     "pypdfium2>=3.0.0",
+    "click>=8.0.0",
 ]
 
 [project.optional-dependencies]
@@ -40,18 +41,18 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/rssify"
-Documentation = "https://github.com/yourusername/rssify#readme"
-Repository = "https://github.com/yourusername/rssify"
-Issues = "https://github.com/yourusername/rssify/issues"
+Homepage = "https://github.com/yourusername/webetl"
+Documentation = "https://github.com/yourusername/webetl#readme"
+Repository = "https://github.com/yourusername/webetl"
+Issues = "https://github.com/yourusername/webetl/issues"
 
 [project.scripts]
-rssify = "rssify.cli:main"
+webetl = "cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["rssify*"]
-exclude = ["test*", "data*"]
+include = ["cli*", "source*", "extract*", "transform*", "load*"]
+exclude = ["test*", "data*", "test_server*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
