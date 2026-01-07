@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="WebETL Logo" width="400">
+</p>
+
 # WebETL
 
 A flexible web content extraction, transformation, and loading (ETL) pipeline for navigating websites, extracting data, transforming it with LLMs, and generating structured output.
@@ -17,7 +21,7 @@ A flexible web content extraction, transformation, and loading (ETL) pipeline fo
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/webetl
+git clone https://github.com/obergxdata/x-webetl
 cd webetl
 
 # Install in editable mode
@@ -27,10 +31,10 @@ make install-dev
 pip install -e ".[dev]"
 ```
 
-### From PyPI (When Published)
+### From PyPI
 
 ```bash
-pip install webetl
+pip install x-webetl
 ```
 
 ## Quick Start
@@ -103,27 +107,31 @@ from transform.transform import Transform
 from load.load import Load
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def run_etl(config_file: str, source_name: str = None):
     """Run full ETL pipeline for a source."""
     # Extract
-    print(f"Extracting data from {source_name or 'all sources'}...")
+    logger.info(f"Extracting data from {source_name or 'all sources'}...")
     dispatcher = Dispatcher(path=config_file, source_name=source_name)
     dispatcher.execute_jobs()
     dispatcher.save_results()
 
     # Transform (automatically uses today's date)
-    print("Transforming data...")
+    logger.info("Transforming data...")
     transform = Transform()
     transform.process_jobs()
 
     # Load
-    print("Loading data...")
+    logger.info("Loading data...")
     load = Load()
     load.process_jobs()
 
-    print("ETL pipeline completed!")
+    logger.info("ETL pipeline completed!")
 
 if __name__ == "__main__":
     run_etl("sources.yml", source_name="my_source")
@@ -421,5 +429,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-- Issues: https://github.com/yourusername/webetl/issues
-- Documentation: https://github.com/yourusername/webetl#readme
+- Issues: https://github.com/obergxdata/x-webetl/issues
+- Documentation: https://github.com/obergxdata/x-webetl#readme

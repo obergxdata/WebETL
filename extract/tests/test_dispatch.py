@@ -201,3 +201,105 @@ def test_run_tracker_prevents_duplicate_urls(test_server, test_sources_yml):
 
     # Verify second run produced no results (all URLs already fetched)
     assert len(d2.results) == 0
+
+
+def test_dispatcher_handles_broken_urls(caplog):
+    """Test that dispatcher handles broken URLs gracefully by logging errors."""
+    from source.source_manager import Job
+
+    # Create a fake job with broken URLs
+    fake_job = Job(
+        name="test_broken_urls",
+        start="http://this-domain-definitely-does-not-exist-12345.com",
+        nav=[],
+        extract=[Field(name="title", selector="/html/body/h1")],
+        urls=[
+            "http://this-domain-definitely-does-not-exist-12345.com/page1.html",
+            "http://invalid-url-404.com/nonexistent.html",
+        ],
+        ftype="html",
+        extract_ftype="html",
+    )
+
+    # Create dispatcher and manually set up jobs
+    d = Dispatcher.__new__(Dispatcher)
+    d.navigate = Navigate.__new__(Navigate)
+    d.navigate.jobs = [fake_job]
+    d.results = []
+    from extract.dispatch import RunTracker
+    d.run_tracker = RunTracker()
+
+    # Execute jobs - should not raise exceptions
+    import logging
+    with caplog.at_level(logging.ERROR):
+        d.execute_jobs()
+
+    # Verify errors were logged
+    assert any("Failed to fetch" in record.message for record in caplog.records)
+
+    # Verify no results were collected (all URLs failed)
+    assert len(d.results) == 0 or (len(d.results) == 1 and len(d.results[0].results) == 0)
+
+
+def test_dispatcher_handles_broken_rss_feeds(caplog):
+    """Test that dispatcher handles broken RSS feeds gracefully by logging errors."""
+    from source.source_manager import Job
+
+    # Create a fake job with broken RSS URL
+    fake_job = Job(
+        name="test_broken_rss",
+        start="http://this-domain-definitely-does-not-exist-12345.com/feed.xml",
+        nav=[],
+        extract=[Field(name="title", selector="title"), Field(name="description", selector="description")],
+        urls=["http://this-domain-definitely-does-not-exist-12345.com/feed.xml"],
+        ftype="rss",
+        extract_ftype="rss",
+    )
+
+    # Create dispatcher and manually set up jobs
+    d = Dispatcher.__new__(Dispatcher)
+    d.navigate = Navigate.__new__(Navigate)
+    d.navigate.jobs = [fake_job]
+    d.results = []
+    from extract.dispatch import RunTracker
+    d.run_tracker = RunTracker()
+
+    # Execute jobs - should not raise exceptions
+    import logging
+    with caplog.at_level(logging.ERROR):
+        d.execute_jobs()
+
+    # Verify errors were logged
+    assert any("Failed to" in record.message for record in caplog.records)
+
+    # Verify no results were collected (all URLs failed)
+    assert len(d.results) == 0 or (len(d.results) == 1 and len(d.results[0].results) == 0)
+
+
+def test_navigate_handles_broken_navigation(caplog, test_sources_yml):
+    """Test that navigation handles broken URLs gracefully by logging warnings."""
+    from source.source_manager import Nav
+    import logging
+
+    # Create Navigate instance with a real source
+    n = Navigate(path=test_sources_yml, source_name="test")
+
+    # Override one of the navigation steps with a broken URL
+    job = n.jobs[0]
+    job.nav = [
+        Nav(
+            url="http://this-domain-definitely-does-not-exist-12345.com/index.html",
+            selector="//a/@href",
+            ftype="html",
+        )
+    ]
+
+    # This should not raise an exception
+    with caplog.at_level(logging.WARNING):
+        n.start()
+
+    # Verify warning was logged about failed navigation
+    assert any("No URLs found during navigation" in record.message for record in caplog.records)
+
+    # Verify job.urls is empty or None (navigation failed)
+    assert not job.urls or len(job.urls) == 0

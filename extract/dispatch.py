@@ -191,7 +191,7 @@ class RunTracker:
                 DELETE FROM fetched_urls
                 WHERE date(fetch_datetime) = ?
                 """,
-                (target_date,)
+                (target_date,),
             )
             conn.commit()
             return cursor.rowcount
@@ -278,7 +278,8 @@ class Navigate:
 
         all_urls = self.navigate_all(current_navs)
         if not all_urls:
-            raise Exception(f"Failed to navigate: {job.nav[step_index]}")
+            logger.warning(f"No URLs found during navigation step {step_index + 1} for job {job.name}: {job.nav[step_index]}")
+            return []
 
         if is_final:
             if job.urls is None:
@@ -322,9 +323,13 @@ class Navigate:
 
         if nav.ftype == "rss":
             doc = visit_rss(url=nav.url)
+            if not doc:
+                return []
             relative_urls = self.select_rss(doc, nav.selector)
         elif nav.ftype == "html":
             doc = visit_html(url=nav.url)
+            if not doc:
+                return []
             relative_urls = self.select_html(doc, nav.selector)
         else:
             raise Exception(f"Unsupported navigation ftype: {nav.ftype}")
@@ -398,6 +403,8 @@ class Dispatcher:
 
     def rss_extract(self, job: Job, url: str) -> PageResult:
         rss = visit_rss(url=url)
+        if not rss:
+            return None
 
         extractions = []
         for entry in rss.entries:
@@ -410,6 +417,9 @@ class Dispatcher:
 
     def html_extract(self, job: Job, url: str) -> PageResult:
         html = visit_html(url=url)
+        if not html:
+            return None
+
         tree = lxml_html.fromstring(html)
 
         extractions = []
@@ -424,6 +434,9 @@ class Dispatcher:
     def pdf_extract(self, job: Job, url: str) -> list:
         # Load PDF from bytes
         doc = visit_html(url=url, text=False)
+        if not doc:
+            return None
+
         pdf = pdfium.PdfDocument(BytesIO(doc))
 
         extractions = []

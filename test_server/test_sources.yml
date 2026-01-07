@@ -1,98 +1,98 @@
 source:
 
-  - name: "test"
-    start: "http://localhost:8888/html/home.html"
+  - name: test
+    start: http://localhost:8888/html/home.html
     navigate:
-      - step: "first page"
-        selector: "//ul/li/a/@href"
-        ftype: "html"
-      - step: "articles"
-        selector: "//div[@id='article-body']/p[4]/a/@href"
-        ftype: "html"
+      - step: first page
+        selector: //ul/li/a/@href
+        ftype: html
+      - step: articles
+        selector: //div[@id='article-body']/p[4]/a/@href
+        ftype: html
     extract:
-      ftype: "html"
+      ftype: html
       fields:
-        - name: "title"
-          selector: "/html/body/h1"
-        - name: "body"
-          selector: "//div[@id='article-body']"
+        - name: title
+          selector: /html/body/h1
+        - name: body
+          selector: //div[@id='article-body']
 
-  - name: "test_rss_html"
-    start: "http://localhost:8888/rss/feed.xml"
+  - name: test_rss_html
+    start: http://localhost:8888/rss/feed.xml
     navigate:
-      - step: "the feed"
-        selector: "link"
-        ftype: "rss"
-      - step: "the article"
-        selector: "//div[@id='article-body']/p[4]/a/@href"
-        ftype: "html"
+      - step: the feed
+        selector: link
+        ftype: rss
+      - step: the article
+        selector: //div[@id='article-body']/p[4]/a/@href
+        ftype: html
     extract:
-      ftype: "html"
+      ftype: html
       fields:
-        - name: "title"
-          selector: "/html/body/h1"
-        - name: "body"
-          selector: "//div[@id='article-body']"
+        - name: title
+          selector: /html/body/h1
+        - name: body
+          selector: //div[@id='article-body']
     transform:
       LLM:
-      - name: "summarize"
-        input: ["body", "title"]
-        output: "article_summary"
-        model: "gpt-4"
-        prompt: "Summarize the following article in a concise manner."
-      - name: "sentiment"
-        input: ["body"]
-        output: "title_sentiment"
-        model: "gpt-4"
-        prompt: "Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral."
+      - name: summarize
+        input: [body, title]
+        output: article_summary
+        model: gpt-4
+        prompt: Summarize the following article in a concise manner.
+      - name: sentiment
+        input: [body]
+        output: title_sentiment
+        model: gpt-4
+        prompt: Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral.
     load:
       xml:
         fields:
-          - field: "article_summary"
-            name: "description"
-          - field: "title"
-            name: "title"
+          - field: article_summary
+            name: description
+          - field: title
+            name: title
       json:
         fields:
-          - field: "title"
-            name: "title"
+          - field: title
+            name: title
 
 
-  - name: "test_only_rss"
-    start: "http://localhost:8888/rss/feed.xml"
+  - name: test_only_rss
+    start: http://localhost:8888/rss/feed.xml
     extract:
-      ftype: "rss"
+      ftype: rss
       fields:
-        - name: "title"
-          selector: "title"
-        - name: "description"
-          selector: "description"
+        - name: title
+          selector: title
+        - name: description
+          selector: description
     transform:
       LLM:
-      - name: "sentiment"
-        input: ["title"]
-        output: "title_sentiment"
-        model: "gpt-4"
-        prompt: "Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral."
+      - name: sentiment
+        input: [title]
+        output: title_sentiment
+        model: gpt-4
+        prompt: Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral.
     load:
       json:
         fields:
-          - field: "title"
-            name: "title"
-          - field: "title"
-            name: "description"
-          
+          - field: title
+            name: title
+          - field: title
+            name: description
 
-  - name: "test_rss_html_pdf"
-    start: "http://localhost:8888/rss/feed.xml"
+
+  - name: test_rss_html_pdf
+    start: http://localhost:8888/rss/feed.xml
     navigate:
-      - step: "the feed"
-        selector: "link"
-        must_contain: ["html"]
-        ftype: "rss"
-      - step: "the article"
-        selector: "//div[@id='article-body']/p[5]/a/@href"
-        ftype: "html"
-        must_contain: [".pdf"]
+      - step: the feed
+        selector: link
+        must_contain: [html]
+        ftype: rss
+      - step: the article
+        selector: //div[@id='article-body']/p[5]/a/@href
+        ftype: html
+        must_contain: [.pdf]
     extract:
-      ftype: "pdf"
+      ftype: pdf
