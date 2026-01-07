@@ -50,6 +50,12 @@ class Source:
 
         if self.source_name:
             sources = [s for s in sources if s["name"] == self.source_name]
+            if not sources:
+                available_sources = [s["name"] for s in self.sources["source"]]
+                raise ValueError(
+                    f"Source '{self.source_name}' not found in config. "
+                    f"Available sources: {', '.join(available_sources)}"
+                )
 
         for source_conf in sources:
 

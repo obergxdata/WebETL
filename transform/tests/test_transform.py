@@ -11,7 +11,7 @@ def test_transform(dispatch_all_sources):
     """Test the transform function with all sources dispatched."""
     dispatcher = dispatch_all_sources
     dispatcher.save_results()
-    transformer = Transform(data_date=DATA_DATE)
+    transformer = Transform()
     transformer.process_jobs()
 
     # Verify silver files exist and contain expected keys
@@ -57,4 +57,6 @@ def test_transform(dispatch_all_sources):
     assert test_file.exists(), "test.json should exist in silver (no analysis needed)"
 
     test_rss_html_pdf_file = silver_dir / "test_rss_html_pdf.json"
-    assert test_rss_html_pdf_file.exists(), "test_rss_html_pdf.json should exist in silver (no analysis needed)"
+    assert (
+        test_rss_html_pdf_file.exists()
+    ), "test_rss_html_pdf.json should exist in silver (no analysis needed)"

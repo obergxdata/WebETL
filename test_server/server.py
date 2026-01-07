@@ -25,17 +25,32 @@ class TestServer:
 
     def start(self, quiet=True):
         """Start the server in a background thread (for pytest) or foreground."""
+        # Store original directory for later restoration
         self.original_dir = os.getcwd()
-        os.chdir(self.content_dir)
+
+        # Create a custom handler that serves from content_dir without changing cwd
+        content_dir = str(self.content_dir)
 
         if quiet:
             class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-                """HTTP handler that suppresses log messages"""
+                """HTTP handler that suppresses log messages and serves from specific directory"""
                 def log_message(self, format, *args):
                     pass
+                def translate_path(self, path):
+                    # Serve files from content_dir instead of cwd
+                    path = super().translate_path(path)
+                    relpath = os.path.relpath(path, os.getcwd())
+                    return os.path.join(content_dir, relpath)
             handler = QuietHTTPRequestHandler
         else:
-            handler = http.server.SimpleHTTPRequestHandler
+            class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+                """HTTP handler that serves from specific directory"""
+                def translate_path(self, path):
+                    # Serve files from content_dir instead of cwd
+                    path = super().translate_path(path)
+                    relpath = os.path.relpath(path, os.getcwd())
+                    return os.path.join(content_dir, relpath)
+            handler = CustomHTTPRequestHandler
 
         self.httpd = ReusableTCPServer(("", self.port), handler)
         return f"http://localhost:{self.port}"
@@ -64,11 +79,9 @@ class TestServer:
             self.stop()
 
     def stop(self):
-        """Stop the server and restore working directory."""
+        """Stop the server."""
         if self.httpd:
             self.httpd.shutdown()
-        if self.original_dir:
-            os.chdir(self.original_dir)
 
 
 if __name__ == "__main__":

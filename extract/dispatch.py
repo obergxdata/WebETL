@@ -170,6 +170,32 @@ class RunTracker:
             conn.commit()
             return cursor.rowcount
 
+    def reset_tracking_by_date(self, date_str: str = None) -> int:
+        """Reset (delete) all fetched URLs for a specific date.
+
+        Args:
+            date_str: Date string in YYYY-MM-DD format. If None, uses today's date.
+
+        Returns:
+            Number of rows deleted
+        """
+        if date_str is None:
+            target_date = datetime.now().strftime("%Y-%m-%d")
+        else:
+            target_date = date_str
+
+        # Delete all records where the fetch_datetime date matches the target date
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                """
+                DELETE FROM fetched_urls
+                WHERE date(fetch_datetime) = ?
+                """,
+                (target_date,)
+            )
+            conn.commit()
+            return cursor.rowcount
+
     def get_latest_fetches(self, limit: int = 100) -> list[tuple[str, str, str]]:
         """Get the latest fetched URLs from the database.
 

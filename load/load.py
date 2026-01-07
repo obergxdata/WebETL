@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class Load:
 
-    def __init__(self, data_date: str):
+    def __init__(self, data_date: str | None = None):
         self.dm = DataManager(data_date)
 
     def process_jobs(self):

@@ -35,6 +35,22 @@ pip install webetl
 
 ## Quick Start
 
+### Initialize a New Project
+
+```bash
+# Create a new WebETL project with directory structure and template config
+webetl init
+
+# Or specify a custom config file name
+webetl init --name my_sources.yml
+```
+
+This creates:
+- `data/` directory structure (jobs/, raw/, silver/, gold/)
+- `sources.yml` template configuration file
+- `.env.example` for environment variables
+- `.gitignore` for version control
+
 ### Using the CLI
 
 ```bash
@@ -43,35 +59,74 @@ webetl run sources.yml --source my_source
 
 # Run individual stages
 webetl extract sources.yml --source my_source  # Extract (no date needed)
-webetl transform --date 2024-01-01             # Transform specific date data
-webetl load --date 2024-01-01                  # Load specific date data
+webetl transform 2024-01-01                    # Transform specific date data
+webetl load 2024-01-01                         # Load specific date data
+
+# Transform and load default to today's date if not specified
+webetl transform                               # Uses today's date
+webetl load                                    # Uses today's date
 
 # Manage fetch history
 webetl fetches --limit 50              # Show recent fetches
-webetl has-fetched https://example.com # Check if URL was fetched
-webetl delete-source my_source         # Delete fetch history for source
-webetl delete-url https://example.com  # Delete specific URL
+webetl reset-tracking                  # Reset today's tracking (allows re-fetching)
+webetl reset-tracking 2024-01-15       # Reset tracking for specific date
 ```
 
 ### Using the Python API
 
 ```python
-from extract import Dispatcher
-from transform import Transform
-from load import Load
+from extract.dispatch import Dispatcher
+from transform.transform import Transform
+from load.load import Load
 
 # Extract data from sources
 dispatcher = Dispatcher(path="sources.yml", source_name="my_source")
 dispatcher.execute_jobs()
 dispatcher.save_results()
 
-# Transform with LLM
-transform = Transform(data_date="2024-01-01")
+# Transform with LLM (uses today's date if not specified)
+transform = Transform()  # or Transform(data_date="2024-01-01")
 transform.process_jobs()
 
 # Load into final format
-load = Load(data_date="2024-01-01")
+load = Load()  # or Load(data_date="2024-01-01")
 load.process_jobs()
+```
+
+Or create a simple automation script:
+
+```python
+#!/usr/bin/env python3
+"""Daily ETL automation script."""
+from extract.dispatch import Dispatcher
+from transform.transform import Transform
+from load.load import Load
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+def run_etl(config_file: str, source_name: str = None):
+    """Run full ETL pipeline for a source."""
+    # Extract
+    print(f"Extracting data from {source_name or 'all sources'}...")
+    dispatcher = Dispatcher(path=config_file, source_name=source_name)
+    dispatcher.execute_jobs()
+    dispatcher.save_results()
+
+    # Transform (automatically uses today's date)
+    print("Transforming data...")
+    transform = Transform()
+    transform.process_jobs()
+
+    # Load
+    print("Loading data...")
+    load = Load()
+    load.process_jobs()
+
+    print("ETL pipeline completed!")
+
+if __name__ == "__main__":
+    run_etl("sources.yml", source_name="my_source")
 ```
 
 ## Configuration
@@ -112,10 +167,18 @@ source:
 
     # Output format (optional)
     load:
-      format: rss
-      title: Tech Blog Summaries
-      description: Summarized articles from tech blog
-      link: https://example.com
+      xml:
+        fields:
+          - field: summary
+            name: description
+          - field: title
+            name: title
+      json:
+        fields:
+          - field: title
+            name: title
+          - field: summary
+            name: summary
 ```
 
 ## Architecture
@@ -145,25 +208,30 @@ Define your data sources in YAML with navigation steps, extraction rules, transf
 
 ## CLI Reference
 
+### Project Setup
+
+```bash
+webetl init                          # Initialize new project in current directory
+webetl init --name custom.yml        # Initialize with custom config filename
+webetl init --force                  # Overwrite existing files
+```
+
 ### ETL Commands
 
 ```bash
 webetl run <config.yml>              # Run full ETL pipeline (uses today's date)
 webetl extract <config.yml>          # Extract data from sources only
-webetl transform --date YYYY-MM-DD   # Transform extracted data for specific date
-webetl load --date YYYY-MM-DD        # Load transformed data for specific date
+webetl transform [YYYY-MM-DD]        # Transform extracted data (defaults to today)
+webetl load [YYYY-MM-DD]             # Load transformed data (defaults to today)
 ```
 
-**Note:** The `run` command extracts data and then processes it using today's date for transform/load. If you want to process previously extracted data from a different date, use `transform` and `load` separately.
+**Note:** The `run` command extracts data and then processes it using today's date for transform/load. If you want to process previously extracted data from a different date, use `transform` and `load` separately with a date argument.
 
-### History Management
+### Fetch Tracking Management
 
 ```bash
 webetl fetches [--limit N]           # Show recently fetched URLs
-webetl has-fetched <url>             # Check if URL was fetched
-webetl delete-source <name>          # Delete fetch history for source
-webetl delete-url <url>              # Delete specific URL from history
-webetl delete-all                    # Delete all fetch history (with confirmation)
+webetl reset-tracking [YYYY-MM-DD]   # Reset tracking for date (allows re-fetching)
 ```
 
 ### Options
@@ -234,11 +302,13 @@ WebETL organizes data in a structured directory:
 
 ```
 data/
-├── YYYY-MM-DD/           # Date-based data storage
-│   ├── raw/              # Extracted raw data (JSON)
-│   ├── jobs/             # Job configurations (pickle)
-│   ├── silver/           # Transformed data (JSON)
-│   └── gold/             # Final output (RSS/JSON)
+├── jobs/                 # Job configurations (pickle)
+├── raw/
+│   └── YYYY-MM-DD/       # Extracted raw data (JSON) by date
+├── silver/
+│   └── YYYY-MM-DD/       # Transformed data (JSON) by date
+├── gold/
+│   └── YYYY-MM-DD/       # Final output (RSS/JSON) by date
 └── runs.db               # SQLite database for fetch tracking
 ```
 

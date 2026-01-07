@@ -180,7 +180,7 @@ def test_source_result_to_json_test(test_server, test_sources_yml):
 
 def test_run_tracker_prevents_duplicate_urls(test_server, test_sources_yml):
     """Test that URLs are only fetched once, ever."""
-    from fetch.dispatch import RunTracker
+    from extract.dispatch import RunTracker
 
     # First run - should execute normally
     d1 = Dispatcher(path=test_sources_yml, source_name="test")
