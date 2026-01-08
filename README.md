@@ -173,11 +173,14 @@ source:
 
     # Transform with LLM (optional)
     transform:
-      - input: [content]
+      LLM:
+      - name: summarize
+        input: [content]
         output: summary
         model: gpt-4
         prompt: "Summarize this article in 2-3 sentences"
-      - input: [content]
+      - name: extract_topics
+        input: [content]
         output: topics
         model: gpt-4
         prompt: "Extract 3-5 main topics from this article as a comma-separated list"
