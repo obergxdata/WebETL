@@ -141,8 +141,8 @@ class DataManager:
             filename = f"{filename}.json"
 
         file_path = directory / filename
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=indent)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=indent, ensure_ascii=False)
 
         logger.info(f"Saved JSON to {file_path}")
         return file_path
@@ -167,7 +167,7 @@ class DataManager:
             logger.warning(f"JSON file not found: {file_path}")
             return None
 
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def iter_jsons(self, directory: Path | None = None):
@@ -225,7 +225,7 @@ class DataManager:
             filename = f"{filename}.xml"
 
         file_path = directory / filename
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(xml_string)
 
         logger.info(f"Saved XML to {file_path}")
@@ -251,6 +251,6 @@ class DataManager:
             logger.warning(f"XML file not found: {file_path}")
             return None
 
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
 

@@ -234,6 +234,7 @@ class PageResult:
 class SourceResult:
     source_name: str
     results: list[PageResult]
+    extraction_date: datetime
 
     def to_json(self) -> dict:
         result_dict = {}
@@ -243,7 +244,11 @@ class SourceResult:
                 fields_dict[extraction.name] = extraction.data
             result_dict[page_result.url] = fields_dict
 
-        return {"source": self.source_name, "result": result_dict}
+        return {
+            "source": self.source_name,
+            "extraction_date": self.extraction_date.isoformat(),
+            "result": result_dict,
+        }
 
     def save(self) -> None:
         dm = DataManager()  # Uses today's date
@@ -278,7 +283,9 @@ class Navigate:
 
         all_urls = self.navigate_all(current_navs)
         if not all_urls:
-            logger.warning(f"No URLs found during navigation step {step_index + 1} for job {job.name}: {job.nav[step_index]}")
+            logger.warning(
+                f"No URLs found during navigation step {step_index + 1} for job {job.name}: {job.nav[step_index]}"
+            )
             return []
 
         if is_final:
@@ -336,10 +343,17 @@ class Navigate:
 
         relative_urls = self.filter_urls(relative_urls, nav)
 
-        return [
-            urljoin(nav.url, quote(url, safe="/:?#[]@!$&'()*+,;="))
-            for url in relative_urls
-        ]
+        result_urls = []
+        for url in relative_urls:
+            if not isinstance(url, str):
+                logger.error(
+                    f"The navigation xpath did not return a string, make sure you are selecting the actual url e.g. /@href. "
+                    f"Got type {type(url).__name__} for selector '{nav.selector}' at {nav.url}"
+                )
+                continue
+            result_urls.append(urljoin(nav.url, quote(url, safe="/:?#[]@!$&'()*+,;=")))
+
+        return result_urls
 
     def select_html(self, doc: str, selector: str) -> list:
         tree = lxml_html.fromstring(doc)
@@ -351,11 +365,12 @@ class Navigate:
 
 class Dispatcher:
 
-    def __init__(self, path: str, source_name: str | None = None):
+    def __init__(self, path: str, source_name: str | None = None, no_track: bool = False):
         self.navigate = Navigate(path, source_name=source_name)
         self.navigate.start()
         self.results: list[SourceResult] = []
         self.run_tracker = RunTracker()
+        self.no_track = no_track
 
     def execute_jobs(self):
         for job in self.navigate.jobs:
@@ -365,13 +380,16 @@ class Dispatcher:
                 logger.warning(f"No URLs found for job: {job.name}")
                 continue
 
-            # Filter out URLs that have already been fetched by this source
-            unfetched_urls = self.run_tracker.filter_unfetched_urls(job.urls, job.name)
+            # Filter out URLs that have already been fetched by this source (unless no_track is enabled)
+            if self.no_track:
+                unfetched_urls = job.urls
+            else:
+                unfetched_urls = self.run_tracker.filter_unfetched_urls(job.urls, job.name)
 
-            # Skip if all URLs have already been fetched by this source
-            if not unfetched_urls:
-                logger.info(f"All URLs already fetched for job: {job.name}")
-                continue
+                # Skip if all URLs have already been fetched by this source
+                if not unfetched_urls:
+                    logger.warning(f"All URLs already fetched for job: {job.name}")
+                    continue
 
             logger.info(f"Fetching {len(unfetched_urls)} URLs for {job.name}")
             page_results = []
@@ -393,12 +411,17 @@ class Dispatcher:
                     result = future.result()
                     if result:
                         page_results.append(result)
-                        # Mark this URL as fetched
-                        self.run_tracker.add_url(result.url, job.name)
+                        # Mark this URL as fetched (unless no_track is enabled)
+                        if not self.no_track:
+                            self.run_tracker.add_url(result.url, job.name)
 
             logger.info(f"Collected {len(page_results)} page results for {job.name}")
             self.results.append(
-                SourceResult(source_name=job.name, results=page_results)
+                SourceResult(
+                    source_name=job.name,
+                    results=page_results,
+                    extraction_date=datetime.now(),
+                )
             )
 
     def rss_extract(self, job: Job, url: str) -> PageResult:
@@ -424,6 +447,13 @@ class Dispatcher:
 
         extractions = []
         for field in job.extract:
+            # Warn if selector ends with /text() as it may not capture nested element text
+            if field.selector.rstrip().endswith("/text()"):
+                logger.warning(
+                    f"Extraction selector '{field.selector}' ends with /text() which only captures direct text nodes. "
+                    f"This will miss text in nested elements. Consider removing /text() to capture all text content."
+                )
+
             data = tree.xpath(field.selector)
             if data:
                 value = data[0] if isinstance(data[0], str) else data[0].text_content()

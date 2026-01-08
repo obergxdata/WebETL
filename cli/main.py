@@ -161,7 +161,8 @@ ENV/
 @cli.command()
 @click.argument("config_file", type=click.Path(exists=True))
 @click.option("--source", "-s", help="Specific source name to process (processes all if not specified)")
-def run(config_file, source):
+@click.option("--no-track", is_flag=True, help="Disable fetch tracking, allowing re-fetching of already processed URLs")
+def run(config_file, source, no_track):
     """Run full ETL pipeline: extract, transform, and load.
 
     Extract uses current time, transform and load use today's date.
@@ -169,11 +170,13 @@ def run(config_file, source):
     click.echo(f"Running full ETL pipeline for {config_file}")
     if source:
         click.echo(f"  Source: {source}")
+    if no_track:
+        click.echo("  Tracking disabled - will re-fetch all URLs")
 
     try:
         # Extract
         click.echo("\n[1/3] Extracting data...")
-        dispatcher = Dispatcher(path=config_file, source_name=source)
+        dispatcher = Dispatcher(path=config_file, source_name=source, no_track=no_track)
         dispatcher.execute_jobs()
         dispatcher.save_results()
         click.echo("  ✓ Extraction complete")
@@ -200,14 +203,17 @@ def run(config_file, source):
 @cli.command()
 @click.argument("config_file", type=click.Path(exists=True))
 @click.option("--source", "-s", help="Specific source name to extract")
-def extract(config_file, source):
+@click.option("--no-track", is_flag=True, help="Disable fetch tracking, allowing re-fetching of already processed URLs")
+def extract(config_file, source, no_track):
     """Extract data from sources defined in config file."""
     click.echo(f"Extracting data from {config_file}")
     if source:
         click.echo(f"  Source: {source}")
+    if no_track:
+        click.echo("  Tracking disabled - will re-fetch all URLs")
 
     try:
-        dispatcher = Dispatcher(path=config_file, source_name=source)
+        dispatcher = Dispatcher(path=config_file, source_name=source, no_track=no_track)
         dispatcher.execute_jobs()
         dispatcher.save_results()
     except ValueError as e:

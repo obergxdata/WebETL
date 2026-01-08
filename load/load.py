@@ -70,9 +70,11 @@ class Load:
 
         fields_config = xml_config.get("fields", [])
         result_data = silver_data.get("result", {})
+        extraction_date = silver_data.get("extraction_date")
 
-        # Create root element
+        # Create root element with extraction_date
         root = ET.Element("feed")
+        root.set("extraction_date", extraction_date)
 
         # Create an item for each URL in the result
         for url, data in result_data.items():
@@ -107,9 +109,11 @@ class Load:
 
         fields_config = json_config.get("fields", [])
         result_data = silver_data.get("result", {})
+        extraction_date = silver_data.get("extraction_date")
+        source = silver_data.get("source", source_name)
 
-        # Create a list of items
-        items = []
+        # Create result dict with filtered/mapped fields
+        filtered_result = {}
 
         # Create an object for each URL in the result
         for url, data in result_data.items():
@@ -125,7 +129,14 @@ class Load:
                 else:
                     logger.warning(f"Field '{field_name}' not found in data for {url}")
 
-            items.append(output_data)
+            filtered_result[url] = output_data
+
+        # Create output structure matching silver layer format
+        output = {
+            "source": source,
+            "extraction_date": extraction_date,
+            "result": filtered_result,
+        }
 
         # Save using DataManager
-        self.dm.save_json(items, source_name, layer="gold")
+        self.dm.save_json(output, source_name, layer="gold")

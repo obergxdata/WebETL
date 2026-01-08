@@ -162,6 +162,8 @@ def test_dispatcher_test_rss_html_pdf(test_server, test_sources_yml):
 
 def test_source_result_to_json_test(test_server, test_sources_yml):
     """Test JSON serialization for 'test' source."""
+    from datetime import datetime
+
     d = Dispatcher(path=test_sources_yml, source_name="test")
     d.execute_jobs()
 
@@ -170,7 +172,14 @@ def test_source_result_to_json_test(test_server, test_sources_yml):
 
     assert json_data["source"] == "test"
     assert "result" in json_data
+    assert "extraction_date" in json_data
     assert len(json_data["result"]) == 3
+
+    # Validate extraction_date is in ISO format
+    extraction_date = json_data["extraction_date"]
+    assert isinstance(extraction_date, str)
+    # Parse to ensure it's valid ISO format
+    datetime.fromisoformat(extraction_date)
 
     for url, fields in json_data["result"].items():
         assert url.startswith(f"{test_server}/html/article_")
@@ -228,6 +237,7 @@ def test_dispatcher_handles_broken_urls(caplog):
     d.results = []
     from extract.dispatch import RunTracker
     d.run_tracker = RunTracker()
+    d.no_track = False
 
     # Execute jobs - should not raise exceptions
     import logging
@@ -263,6 +273,7 @@ def test_dispatcher_handles_broken_rss_feeds(caplog):
     d.results = []
     from extract.dispatch import RunTracker
     d.run_tracker = RunTracker()
+    d.no_track = False
 
     # Execute jobs - should not raise exceptions
     import logging

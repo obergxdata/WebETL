@@ -61,8 +61,12 @@ This creates:
 # Run full ETL pipeline from a source configuration
 webetl run sources.yml --source my_source
 
+# Run with tracking disabled (allows re-fetching already processed URLs)
+webetl run sources.yml --no-track
+
 # Run individual stages
 webetl extract sources.yml --source my_source  # Extract (no date needed)
+webetl extract sources.yml --no-track          # Extract without tracking
 webetl transform 2024-01-01                    # Transform specific date data
 webetl load 2024-01-01                         # Load specific date data
 
@@ -85,6 +89,11 @@ from load.load import Load
 
 # Extract data from sources
 dispatcher = Dispatcher(path="sources.yml", source_name="my_source")
+dispatcher.execute_jobs()
+dispatcher.save_results()
+
+# Extract without tracking (allows re-fetching)
+dispatcher = Dispatcher(path="sources.yml", source_name="my_source", no_track=True)
 dispatcher.execute_jobs()
 dispatcher.save_results()
 
@@ -228,12 +237,16 @@ webetl init --force                  # Overwrite existing files
 
 ```bash
 webetl run <config.yml>              # Run full ETL pipeline (uses today's date)
+webetl run <config.yml> --no-track   # Run without URL tracking (re-fetch all URLs)
 webetl extract <config.yml>          # Extract data from sources only
+webetl extract <config.yml> --no-track  # Extract without URL tracking
 webetl transform [YYYY-MM-DD]        # Transform extracted data (defaults to today)
 webetl load [YYYY-MM-DD]             # Load transformed data (defaults to today)
 ```
 
 **Note:** The `run` command extracts data and then processes it using today's date for transform/load. If you want to process previously extracted data from a different date, use `transform` and `load` separately with a date argument.
+
+**URL Tracking:** By default, WebETL tracks fetched URLs to prevent re-processing. Use `--no-track` to disable this and re-fetch all URLs (useful for testing or forcing updates).
 
 ### Fetch Tracking Management
 
@@ -242,11 +255,13 @@ webetl fetches [--limit N]           # Show recently fetched URLs
 webetl reset-tracking [YYYY-MM-DD]   # Reset tracking for date (allows re-fetching)
 ```
 
-### Options
+### Common Options
 
 ```bash
-webetl --help                        # Show help
-webetl --version                     # Show version
+--source, -s <name>                  # Process specific source only
+--no-track                           # Disable URL tracking (for run/extract commands)
+--help                               # Show help
+--version                            # Show version
 ```
 
 ## Python API Reference
@@ -258,6 +273,11 @@ from extract import Dispatcher, RunTracker
 
 # Extract data from sources
 dispatcher = Dispatcher(path="sources.yml", source_name="my_source")
+dispatcher.execute_jobs()
+dispatcher.save_results()
+
+# Extract without tracking (re-fetch all URLs)
+dispatcher = Dispatcher(path="sources.yml", source_name="my_source", no_track=True)
 dispatcher.execute_jobs()
 dispatcher.save_results()
 

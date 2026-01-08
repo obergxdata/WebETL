@@ -26,7 +26,7 @@ class Transform:
                 logger.warning(f"No raw data found for {job_name}")
                 continue
 
-            # If transform is False, save directly to silver
+            # If transform is False, save directly to silver (preserving extraction_date)
             if not job.transform:
                 self.dm.save_json(raw_data, job_name, layer="silver")
                 logger.info(f"Saved {job_name} to silver (no transform needed)")
@@ -120,8 +120,12 @@ class Transform:
 
             processed_results[url] = processed_data
 
-        # Create final output structure
-        output = {"source": raw["source"], "result": processed_results}
+        # Create final output structure (preserve extraction_date from raw data)
+        output = {
+            "source": raw["source"],
+            "extraction_date": raw["extraction_date"],
+            "result": processed_results,
+        }
 
         # Save to silver
         self.dm.save_json(output, job.name, layer="silver")
