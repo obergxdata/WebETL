@@ -4,7 +4,7 @@ from extract.http import visit_html
 from extract.rss import visit_rss
 from lxml import html as lxml_html
 from urllib.parse import urljoin, quote
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
@@ -312,7 +312,7 @@ class Navigate:
     def navigate_all(self, navs: list[Nav]) -> list[str]:
         all_urls = []
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ProcessPoolExecutor(max_workers=10) as executor:
             future_to_nav = {executor.submit(self.navigate, nav): nav for nav in navs}
 
             for future in as_completed(future_to_nav):
@@ -426,7 +426,7 @@ class Dispatcher:
 
             logger.info(f"Fetching {len(unfetched_urls)} URLs for {job.name}")
             page_results = []
-            with ThreadPoolExecutor(max_workers=10) as executor:
+            with ProcessPoolExecutor(max_workers=10) as executor:
                 futures = []
                 for url in unfetched_urls:
 
@@ -505,7 +505,12 @@ class Dispatcher:
 
     def pdf_extract(self, job: Job, url: str) -> list:
         # Load PDF from bytes
-        doc = visit_html(url=url, text=False)
+        try:
+            doc = visit_html(url=url, text=False)
+        except Exception as e:
+            logger.error(f"Failed to fetch PDF from {url}: {e}, job: {job.name}")
+            return None
+
         if not doc:
             return None
 

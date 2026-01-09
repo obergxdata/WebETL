@@ -13,7 +13,7 @@ A flexible web content extraction, transformation, and loading (ETL) pipeline fo
 - **LLM Transformation**: Transform and analyze extracted content using large language models (OpenAI)
 - **Multiple Output Formats**: Save results as JSON or generate RSS feeds
 - **Duplicate Prevention**: Automatic tracking of fetched URLs to prevent redundant processing
-- **Concurrent Processing**: Multi-threaded extraction for efficient data collection
+- **Concurrent Processing**: Multi-process extraction for efficient and stable data collection
 
 ## Installation
 
