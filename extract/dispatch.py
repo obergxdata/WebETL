@@ -239,10 +239,23 @@ class SourceResult:
     def to_json(self) -> dict:
         result_dict = {}
         for page_result in self.results:
-            fields_dict = {}
+            # Group extractions into individual entries
+            # For RSS: multiple entries, for HTML/PDF: single entry
+            entries = []
+            current_entry = {}
+
             for extraction in page_result.fields:
-                fields_dict[extraction.name] = extraction.data
-            result_dict[page_result.url] = fields_dict
+                # If we see a field name we've already seen, start a new entry
+                if extraction.name in current_entry:
+                    entries.append(current_entry)
+                    current_entry = {}
+                current_entry[extraction.name] = extraction.data
+
+            # Add the last entry
+            if current_entry:
+                entries.append(current_entry)
+
+            result_dict[page_result.url] = entries
 
         return {
             "source": self.source_name,

@@ -86,34 +86,40 @@ class Transform:
 
         return data
 
-    def _process_url(
-        self, url: str, data: dict, llm_steps: list[dict], client: OpenAI
-    ) -> tuple[str, dict]:
-        """Process a single URL through all LLM steps.
+    def _process_entry(
+        self,
+        url: str,
+        entry_index: int,
+        entry: dict,
+        llm_steps: list[dict],
+        client: OpenAI,
+    ) -> tuple[str, int, dict]:
+        """Process a single entry through all LLM steps.
 
         Args:
-            url: The URL being processed
-            data: Dictionary with initial data fields for this URL
+            url: The source URL this entry came from
+            entry_index: The index of this entry in the source
+            entry: Dictionary with initial data fields for this entry
             llm_steps: List of LLM step configurations
             client: OpenAI client instance
 
         Returns:
-            tuple: (url, processed_data) - The URL and its processed data
+            tuple: (url, entry_index, processed_entry)
         """
-        logger.info(f"Processing URL: {url}")
-        processed_data = data.copy()
+        logger.info(f"Processing entry {entry_index} from URL: {url}")
+        processed_entry = entry.copy()
 
-        # Apply each LLM step sequentially for this URL
+        # Apply each LLM step sequentially for this entry
         for llm_step in llm_steps:
-            processed_data = self._process_llm_step(processed_data, llm_step, client)
+            processed_entry = self._process_llm_step(processed_entry, llm_step, client)
 
-        return url, processed_data
+        return url, entry_index, processed_entry
 
     def transform(self, raw: dict, job: Job):
         """Transform a single job with its raw data using LLM steps.
 
         Args:
-            raw: Raw data dictionary from JSON file (structure: {source: str, result: {url: {fields}}})
+            raw: Raw data dictionary from JSON file (structure: {source: str, result: {url: [{fields}, ...]}})
             job: Job object with configuration including transform.LLM steps
         """
 
@@ -131,20 +137,33 @@ class Transform:
         else:
             return
 
-        # Process each URL's data using multithreading
+        # Process each entry using multithreading
         result_data = raw.get("result", {})
         processed_results = {}
 
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-            for url, data in result_data.items():
-                futures.append(
-                    executor.submit(self._process_url, url, data, llm_steps, client)
-                )
+            # Submit a task for each entry across all URLs
+            for url, entries in result_data.items():
+                # Initialize the result structure for this URL
+                processed_results[url] = [None] * len(entries)
 
+                for entry_index, entry in enumerate(entries):
+                    futures.append(
+                        executor.submit(
+                            self._process_entry,
+                            url,
+                            entry_index,
+                            entry,
+                            llm_steps,
+                            client,
+                        )
+                    )
+
+            # Collect results as they complete
             for future in as_completed(futures):
-                url, processed_data = future.result()
-                processed_results[url] = processed_data
+                url, entry_index, processed_entry = future.result()
+                processed_results[url][entry_index] = processed_entry
 
         # Create final output structure (preserve extraction_date from raw data)
         output = {

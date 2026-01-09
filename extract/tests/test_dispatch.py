@@ -73,6 +73,7 @@ def test_navigate_test_only_rss(test_server, test_sources_yml):
     assert job_rss.extract == [
         Field(name="title", selector="title"),
         Field(name="description", selector="description"),
+        Field(name="link", selector="link"),
     ]
     assert job_rss.nav == []
     assert len(job_rss.urls) == 1
@@ -131,13 +132,15 @@ def test_dispatcher_test_only_rss(test_server, test_sources_yml):
 
     page_result = source_result_rss.results[0]
     assert page_result.url == f"{test_server}/rss/feed.xml"
-    assert len(page_result.fields) == 6  # 3 items * 2 fields (title + description)
-    # Check that we have alternating title and description fields
-    for i in range(0, len(page_result.fields), 2):
+    assert len(page_result.fields) == 9  # 3 items * 3 fields (title + description + link)
+    # Check that we have title, description, link pattern repeating
+    for i in range(0, len(page_result.fields), 3):
         assert page_result.fields[i].name == "title"
         assert len(page_result.fields[i].data) > 0
         assert page_result.fields[i + 1].name == "description"
         assert len(page_result.fields[i + 1].data) > 0
+        assert page_result.fields[i + 2].name == "link"
+        assert len(page_result.fields[i + 2].data) > 0
 
 
 def test_dispatcher_test_rss_html_pdf(test_server, test_sources_yml):
@@ -181,10 +184,14 @@ def test_source_result_to_json_test(test_server, test_sources_yml):
     # Parse to ensure it's valid ISO format
     datetime.fromisoformat(extraction_date)
 
-    for url, fields in json_data["result"].items():
+    for url, entries in json_data["result"].items():
         assert url.startswith(f"{test_server}/html/article_")
-        assert "title" in fields
-        assert len(fields["title"]) > 0
+        # Each URL should have a list of entries (even if just one for HTML)
+        assert isinstance(entries, list)
+        assert len(entries) > 0
+        # Check the first entry
+        assert "title" in entries[0]
+        assert len(entries[0]["title"]) > 0
 
 
 def test_run_tracker_prevents_duplicate_urls(test_server, test_sources_yml):
@@ -236,11 +243,13 @@ def test_dispatcher_handles_broken_urls(caplog):
     d.navigate.jobs = [fake_job]
     d.results = []
     from extract.dispatch import RunTracker
+
     d.run_tracker = RunTracker()
     d.no_track = False
 
     # Execute jobs - should not raise exceptions
     import logging
+
     with caplog.at_level(logging.ERROR):
         d.execute_jobs()
 
@@ -248,7 +257,9 @@ def test_dispatcher_handles_broken_urls(caplog):
     assert any("Failed to fetch" in record.message for record in caplog.records)
 
     # Verify no results were collected (all URLs failed)
-    assert len(d.results) == 0 or (len(d.results) == 1 and len(d.results[0].results) == 0)
+    assert len(d.results) == 0 or (
+        len(d.results) == 1 and len(d.results[0].results) == 0
+    )
 
 
 def test_dispatcher_handles_broken_rss_feeds(caplog):
@@ -260,7 +271,10 @@ def test_dispatcher_handles_broken_rss_feeds(caplog):
         name="test_broken_rss",
         start="http://this-domain-definitely-does-not-exist-12345.com/feed.xml",
         nav=[],
-        extract=[Field(name="title", selector="title"), Field(name="description", selector="description")],
+        extract=[
+            Field(name="title", selector="title"),
+            Field(name="description", selector="description"),
+        ],
         urls=["http://this-domain-definitely-does-not-exist-12345.com/feed.xml"],
         ftype="rss",
         extract_ftype="rss",
@@ -272,11 +286,13 @@ def test_dispatcher_handles_broken_rss_feeds(caplog):
     d.navigate.jobs = [fake_job]
     d.results = []
     from extract.dispatch import RunTracker
+
     d.run_tracker = RunTracker()
     d.no_track = False
 
     # Execute jobs - should not raise exceptions
     import logging
+
     with caplog.at_level(logging.ERROR):
         d.execute_jobs()
 
@@ -284,7 +300,9 @@ def test_dispatcher_handles_broken_rss_feeds(caplog):
     assert any("Failed to" in record.message for record in caplog.records)
 
     # Verify no results were collected (all URLs failed)
-    assert len(d.results) == 0 or (len(d.results) == 1 and len(d.results[0].results) == 0)
+    assert len(d.results) == 0 or (
+        len(d.results) == 1 and len(d.results[0].results) == 0
+    )
 
 
 def test_navigate_handles_broken_navigation(caplog, test_sources_yml):
@@ -310,7 +328,9 @@ def test_navigate_handles_broken_navigation(caplog, test_sources_yml):
         n.start()
 
     # Verify warning was logged about failed navigation
-    assert any("No URLs found during navigation" in record.message for record in caplog.records)
+    assert any(
+        "No URLs found during navigation" in record.message for record in caplog.records
+    )
 
     # Verify job.urls is empty or None (navigation failed)
     assert not job.urls or len(job.urls) == 0

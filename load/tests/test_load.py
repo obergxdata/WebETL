@@ -44,8 +44,11 @@ def test_load(dispatch_transform_all_sources):
     assert len(json_data["result"]) > 0, "Should have at least one result item"
 
     # Validate JSON fields from config (get first URL's data)
-    first_url_data = list(json_data["result"].values())[0]
-    assert "title" in first_url_data, "Should have 'title' field"
+    first_url_entries = list(json_data["result"].values())[0]
+    assert isinstance(first_url_entries, list), "URL data should be a list of entries"
+    assert len(first_url_entries) > 0, "Should have at least one entry"
+    first_entry = first_url_entries[0]
+    assert "title" in first_entry, "Should have 'title' field"
 
     # Test JSON output for test_only_rss
     json_data_rss = dm.load_json("test_only_rss", layer="gold")
@@ -57,6 +60,9 @@ def test_load(dispatch_transform_all_sources):
     assert len(json_data_rss["result"]) > 0, "Should have at least one result item"
 
     # Validate fields mapping
-    first_rss_item = list(json_data_rss["result"].values())[0]
-    assert "title" in first_rss_item, "Should have 'title' field"
-    assert "description" in first_rss_item, "Should have 'description' field"
+    first_rss_entries = list(json_data_rss["result"].values())[0]
+    assert isinstance(first_rss_entries, list), "URL data should be a list of entries"
+    assert len(first_rss_entries) > 0, "Should have at least one entry"
+    first_rss_entry = first_rss_entries[0]
+    assert "title" in first_rss_entry, "Should have 'title' field"
+    assert "description" in first_rss_entry, "Should have 'description' field"

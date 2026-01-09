@@ -41,7 +41,7 @@ class Load:
         """Generate gold layer files from silver data based on job load configuration.
 
         Args:
-            silver_data: Silver data dictionary (structure: {source: str, result: {url: {fields}}})
+            silver_data: Silver data dictionary (structure: {source: str, result: {url: [{fields}, ...]}})
             job: Job object with load configuration
         """
         if not job.load:
@@ -76,20 +76,24 @@ class Load:
         root = ET.Element("feed")
         root.set("extraction_date", extraction_date)
 
-        # Create an item for each URL in the result
-        for url, data in result_data.items():
-            item = ET.SubElement(root, "item")
+        # Create an item for each entry across all URLs
+        for url, entries in result_data.items():
+            # Each URL can have multiple entries (e.g., RSS feeds)
+            for entry in entries:
+                item = ET.SubElement(root, "item")
 
-            # Add each configured field
-            for field_config in fields_config:
-                field_name = field_config.get("field")
-                xml_name = field_config.get("name", field_name)
+                # Add each configured field
+                for field_config in fields_config:
+                    field_name = field_config.get("field")
+                    xml_name = field_config.get("name", field_name)
 
-                if field_name in data:
-                    element = ET.SubElement(item, xml_name)
-                    element.text = str(data[field_name])
-                else:
-                    logger.warning(f"Field '{field_name}' not found in data for {url}")
+                    if field_name in entry:
+                        element = ET.SubElement(item, xml_name)
+                        element.text = str(entry[field_name])
+                    else:
+                        logger.warning(
+                            f"Field '{field_name}' not found in entry for {url}"
+                        )
 
         # Pretty print XML
         xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
@@ -115,21 +119,29 @@ class Load:
         # Create result dict with filtered/mapped fields
         filtered_result = {}
 
-        # Create an object for each URL in the result
-        for url, data in result_data.items():
-            output_data = {}
+        # Process each entry across all URLs
+        for url, entries in result_data.items():
+            output_entries = []
 
-            # Add each configured field
-            for field_config in fields_config:
-                field_name = field_config.get("field")
-                json_name = field_config.get("name", field_name)
+            # Each URL can have multiple entries (e.g., RSS feeds)
+            for entry in entries:
+                output_data = {}
 
-                if field_name in data:
-                    output_data[json_name] = data[field_name]
-                else:
-                    logger.warning(f"Field '{field_name}' not found in data for {url}")
+                # Add each configured field
+                for field_config in fields_config:
+                    field_name = field_config.get("field")
+                    json_name = field_config.get("name", field_name)
 
-            filtered_result[url] = output_data
+                    if field_name in entry:
+                        output_data[json_name] = entry[field_name]
+                    else:
+                        logger.warning(
+                            f"Field '{field_name}' not found in entry for {url}"
+                        )
+
+                output_entries.append(output_data)
+
+            filtered_result[url] = output_entries
 
         # Create output structure matching silver layer format
         output = {

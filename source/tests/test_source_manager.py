@@ -93,6 +93,10 @@ def test_generate_jobs_test_only_rss(test_sources_yml):
                 name="description",
                 selector="description",
             ),
+            Field(
+                name="link",
+                selector="link",
+            ),
         ],
         nav=[],
         transform={

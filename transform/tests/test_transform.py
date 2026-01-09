@@ -30,11 +30,15 @@ def test_transform(dispatch_all_sources):
     assert len(test_rss_html_data["result"]) > 0, "Should have at least one URL result"
 
     # Check each URL's data has the LLM-generated keys
-    for url, data in test_rss_html_data["result"].items():
-        assert "article_summary" in data, f"article_summary should exist for {url}"
-        assert "title_sentiment" in data, f"title_sentiment should exist for {url}"
-        assert "title" in data, f"Original title field should still exist for {url}"
-        assert "body" in data, f"Original body field should still exist for {url}"
+    for url, entries in test_rss_html_data["result"].items():
+        assert isinstance(entries, list), f"Data for {url} should be a list of entries"
+        assert len(entries) > 0, f"Should have at least one entry for {url}"
+        # Check the first entry has all the fields
+        entry = entries[0]
+        assert "article_summary" in entry, f"article_summary should exist for {url}"
+        assert "title_sentiment" in entry, f"title_sentiment should exist for {url}"
+        assert "title" in entry, f"Original title field should still exist for {url}"
+        assert "body" in entry, f"Original body field should still exist for {url}"
 
     # Test test_only_rss - should have LLM analysis with title_sentiment
     test_only_rss_file = silver_dir / "test_only_rss.json"
@@ -48,9 +52,13 @@ def test_transform(dispatch_all_sources):
     assert len(test_only_rss_data["result"]) > 0, "Should have at least one URL result"
 
     # Check each URL's data has the LLM-generated key
-    for url, data in test_only_rss_data["result"].items():
-        assert "title_sentiment" in data, f"title_sentiment should exist for {url}"
-        assert "title" in data, f"Original title field should still exist for {url}"
+    for url, entries in test_only_rss_data["result"].items():
+        assert isinstance(entries, list), f"Data for {url} should be a list of entries"
+        assert len(entries) > 0, f"Should have at least one entry for {url}"
+        # Check all entries have the required fields
+        for i, entry in enumerate(entries):
+            assert "title_sentiment" in entry, f"title_sentiment should exist for {url} entry {i}"
+            assert "title" in entry, f"Original title field should still exist for {url} entry {i}"
 
     # Test sources without analyze should still be saved to silver
     test_file = silver_dir / "test.json"

@@ -63,6 +63,8 @@ source:
           selector: title
         - name: description
           selector: description
+        - name: link
+          selector: link
     transform:
       LLM:
       - name: sentiment
