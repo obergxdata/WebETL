@@ -211,6 +211,7 @@ Define your data sources in YAML with navigation steps, extraction rules, transf
 ### 2. Extract
 - Navigate through websites using CSS/XPath selectors
 - Extract data from HTML, RSS, and PDF sources
+- Auto-resolve content type with `ftype: mixed`
 - Track fetched URLs to prevent duplicates
 - Concurrent processing for performance
 - Save raw data to JSON
@@ -422,6 +423,46 @@ source:
     extract:
       ftype: pdf
       fields: []  # Automatically extracts full text content
+```
+
+### Auto-Resolving Content Type (Mixed)
+
+Use `ftype: mixed` to automatically detect whether content is HTML, RSS, or PDF:
+
+```yaml
+source:
+  - name: auto_detect
+    start: https://example.com/feed
+    navigate:
+      - ftype: mixed  # Automatically detects content type
+        selector: link
+        must_contain: [html]
+    extract:
+      ftype: mixed  # Automatically detects content type
+      fields:
+        - name: title
+          selector: title
+        - name: content
+          selector: description
+```
+
+### Multiple XPath Selectors
+
+HTML selectors support multiple XPath expressions using the pipe character (`|`). The first matching XPath will be used:
+
+```yaml
+source:
+  - name: fallback_selectors
+    start: https://example.com
+    navigate:
+      - ftype: html
+        # Try first XPath, if not found try second
+        selector: //div[@id='article-body']/p[4]/a/@href|//div[@id='alt-body']/p[4]/a/@href
+    extract:
+      ftype: html
+      fields:
+        - name: title
+          selector: //h1[@class='main-title']/text()|//h1[@class='alt-title']/text()
 ```
 
 ## Requirements

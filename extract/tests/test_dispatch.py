@@ -22,7 +22,7 @@ def test_navigate_test(test_server, test_sources_yml):
         ),
         Nav(
             url=None,
-            selector="//div[@id='article-body']/p[4]/a/@href",
+            selector="//div[@id='article-body']/p[4]/a/@href|//div[@id='lol-body']/p[4]/a/@href",
             ftype="html",
         ),
     ]
@@ -52,7 +52,7 @@ def test_navigate_test_rss_html(test_server, test_sources_yml):
         ),
         Nav(
             url=None,
-            selector="//div[@id='article-body']/p[4]/a/@href",
+            selector="//div[@id='lol']/p[4]/a/@href|//div[@id='article-body']/p[4]/a/@href",
             ftype="html",
         ),
     ]
@@ -132,7 +132,9 @@ def test_dispatcher_test_only_rss(test_server, test_sources_yml):
 
     page_result = source_result_rss.results[0]
     assert page_result.url == f"{test_server}/rss/feed.xml"
-    assert len(page_result.fields) == 9  # 3 items * 3 fields (title + description + link)
+    assert (
+        len(page_result.fields) == 9
+    )  # 3 items * 3 fields (title + description + link)
     # Check that we have title, description, link pattern repeating
     for i in range(0, len(page_result.fields), 3):
         assert page_result.fields[i].name == "title"

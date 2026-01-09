@@ -30,7 +30,7 @@ def test_generate_jobs_test(test_sources_yml):
         ),
         Nav(
             url=None,
-            selector="//div[@id='article-body']/p[4]/a/@href",
+            selector="//div[@id='article-body']/p[4]/a/@href|//div[@id='lol-body']/p[4]/a/@href",
             ftype="html",
         ),
     ]
@@ -65,7 +65,7 @@ def test_generate_jobs_test_rss_html(test_sources_yml):
         ),
         Nav(
             url=None,
-            selector="//div[@id='article-body']/p[4]/a/@href",
+            selector="//div[@id='lol']/p[4]/a/@href|//div[@id='article-body']/p[4]/a/@href",
             ftype="html",
         ),
     ]
@@ -82,8 +82,8 @@ def test_generate_jobs_test_only_rss(test_sources_yml):
     assert job == Job(
         name="test_only_rss",
         start="http://localhost:8888/rss/feed.xml",
-        ftype="rss",
-        extract_ftype="rss",
+        ftype="mixed",
+        extract_ftype="mixed",
         extract=[
             Field(
                 name="title",
@@ -131,18 +131,18 @@ def test_generate_jobs_test_rss_html_pdf(test_sources_yml):
 
     assert job.name == "test_rss_html_pdf"
     assert job.start == "http://localhost:8888/rss/feed.xml"
-    assert job.ftype == "rss"
+    assert job.ftype == "mixed"
     assert job.nav == [
         Nav(
             url="http://localhost:8888/rss/feed.xml",
             selector="link",
-            ftype="rss",
+            ftype="mixed",
             must_contain=["html"],
         ),
         Nav(
             url=None,
-            selector="//div[@id='article-body']/p[5]/a/@href",
-            ftype="html",
+            selector="//div[@id='article-rody']/p[5]/a/@href|//div[@id='article-body']/p[5]/a/@href",
+            ftype="mixed",
             must_contain=[".pdf"],
         ),
     ]

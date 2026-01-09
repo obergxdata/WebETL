@@ -341,6 +341,9 @@ class Navigate:
 
     def navigate(self, nav: Nav) -> list[str]:
 
+        if nav.ftype == "mixed":
+            nav.ftype = self.auto_ftype(nav.url)
+
         if nav.ftype == "rss":
             doc = visit_rss(url=nav.url)
             if not doc:
@@ -370,15 +373,30 @@ class Navigate:
 
     def select_html(self, doc: str, selector: str) -> list:
         tree = lxml_html.fromstring(doc)
-        return tree.xpath(selector)
+        selectors = selector.split("|")
+        for sel in selectors:
+            result = tree.xpath(sel)
+            if result:
+                return result
+        return []
 
     def select_rss(self, doc: str, selector: str) -> list:
         return [entry.get(selector) for entry in doc.entries]
 
+    def auto_ftype(self, url: str) -> str:
+        if url.endswith(".rss") or url.endswith(".xml"):
+            return "rss"
+        elif url.endswith(".pdf"):
+            return "pdf"
+        else:
+            return "html"
+
 
 class Dispatcher:
 
-    def __init__(self, path: str, source_name: str | None = None, no_track: bool = False):
+    def __init__(
+        self, path: str, source_name: str | None = None, no_track: bool = False
+    ):
         self.navigate = Navigate(path, source_name=source_name)
         self.navigate.start()
         self.results: list[SourceResult] = []
@@ -397,7 +415,9 @@ class Dispatcher:
             if self.no_track:
                 unfetched_urls = job.urls
             else:
-                unfetched_urls = self.run_tracker.filter_unfetched_urls(job.urls, job.name)
+                unfetched_urls = self.run_tracker.filter_unfetched_urls(
+                    job.urls, job.name
+                )
 
                 # Skip if all URLs have already been fetched by this source
                 if not unfetched_urls:
@@ -409,6 +429,10 @@ class Dispatcher:
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = []
                 for url in unfetched_urls:
+
+                    if job.extract_ftype == "mixed":
+                        job.extract_ftype = self.navigate.auto_ftype(url)
+
                     if job.extract_ftype == "html":
                         extractor = self.html_extract
                     elif job.extract_ftype == "rss":
@@ -467,10 +491,15 @@ class Dispatcher:
                     f"This will miss text in nested elements. Consider removing /text() to capture all text content."
                 )
 
-            data = tree.xpath(field.selector)
-            if data:
-                value = data[0] if isinstance(data[0], str) else data[0].text_content()
-                extractions.append(Extraction(name=field.name, data=value.strip()))
+            selectors = field.selector.split("|")
+            for sel in selectors:
+                data = tree.xpath(sel)
+                if data:
+                    value = (
+                        data[0] if isinstance(data[0], str) else data[0].text_content()
+                    )
+                    extractions.append(Extraction(name=field.name, data=value.strip()))
+                    break
 
         return PageResult(url=url, fields=extractions)
 
