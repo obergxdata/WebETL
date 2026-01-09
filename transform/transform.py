@@ -3,8 +3,10 @@ from source.data_manager import DataManager
 import logging
 import os
 from openai import OpenAI
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 class Transform:
@@ -84,6 +86,29 @@ class Transform:
 
         return data
 
+    def _process_url(
+        self, url: str, data: dict, llm_steps: list[dict], client: OpenAI
+    ) -> tuple[str, dict]:
+        """Process a single URL through all LLM steps.
+
+        Args:
+            url: The URL being processed
+            data: Dictionary with initial data fields for this URL
+            llm_steps: List of LLM step configurations
+            client: OpenAI client instance
+
+        Returns:
+            tuple: (url, processed_data) - The URL and its processed data
+        """
+        logger.info(f"Processing URL: {url}")
+        processed_data = data.copy()
+
+        # Apply each LLM step sequentially for this URL
+        for llm_step in llm_steps:
+            processed_data = self._process_llm_step(processed_data, llm_step, client)
+
+        return url, processed_data
+
     def transform(self, raw: dict, job: Job):
         """Transform a single job with its raw data using LLM steps.
 
@@ -91,34 +116,35 @@ class Transform:
             raw: Raw data dictionary from JSON file (structure: {source: str, result: {url: {fields}}})
             job: Job object with configuration including transform.LLM steps
         """
-        if not job.transform or "LLM" not in job.transform:
-            logger.warning(f"No LLM steps defined for job {job.name}")
+
+        if not job.transform:
+            logger.warning(f"No transform steps defined for job {job.name}")
             return
 
-        # Initialize OpenAI client
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            logger.error("OPENAI_API_KEY environment variable not set")
+        if "LLM" in job.transform:
+
+            if not OPENAI_API_KEY:
+                raise Exception("OPENAI_API_KEY environment variable not set")
+
+            client = OpenAI(api_key=OPENAI_API_KEY)
+            llm_steps = job.transform["LLM"]
+        else:
             return
 
-        client = OpenAI(api_key=api_key)
-        llm_steps = job.transform["LLM"]
-
-        # Process each URL's data
+        # Process each URL's data using multithreading
         result_data = raw.get("result", {})
         processed_results = {}
 
-        for url, data in result_data.items():
-            logger.info(f"Processing URL: {url}")
-            processed_data = data.copy()
-
-            # Apply each LLM step sequentially
-            for llm_step in llm_steps:
-                processed_data = self._process_llm_step(
-                    processed_data, llm_step, client
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
+            for url, data in result_data.items():
+                futures.append(
+                    executor.submit(self._process_url, url, data, llm_steps, client)
                 )
 
-            processed_results[url] = processed_data
+            for future in as_completed(futures):
+                url, processed_data = future.result()
+                processed_results[url] = processed_data
 
         # Create final output structure (preserve extraction_date from raw data)
         output = {
