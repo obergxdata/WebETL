@@ -21,7 +21,7 @@ class RunTracker:
 
     def __init__(self, db_path: str | Path = None):
         if db_path is None:
-            project_root = Path(__file__).parent.parent
+            project_root = Path.cwd()
             db_path = project_root / "data" / "runs.db"
         else:
             db_path = Path(db_path)
