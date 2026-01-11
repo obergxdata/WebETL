@@ -50,7 +50,7 @@ webetl init --name my_sources.yml
 ```
 
 This creates:
-- `data/` directory structure (jobs/, raw/, silver/, gold/)
+- `data/` directory structure (raw/, silver/, gold/)
 - `sources.yml` template configuration file
 - `.env.example` for environment variables
 - `.gitignore` for version control
@@ -59,25 +59,29 @@ This creates:
 
 ```bash
 # Run full ETL pipeline from a source configuration
-webetl run sources.yml --source my_source
-
-# Run with tracking disabled (allows re-fetching already processed URLs)
-webetl run sources.yml --no-track
+webetl run sources.yml                                  # All sources, today's date
+webetl run sources.yml -s my_source                     # Specific source
+webetl run sources.yml -d 2024-01-15                    # Specific date
+webetl run sources.yml -s my_source -d 2024-01-15       # Source and date
+webetl run sources.yml --no-track                       # Disable URL tracking
 
 # Run individual stages
-webetl extract sources.yml --source my_source  # Extract (no date needed)
-webetl extract sources.yml --no-track          # Extract without tracking
-webetl transform 2024-01-01                    # Transform specific date data
-webetl load 2024-01-01                         # Load specific date data
+webetl extract sources.yml                              # Extract all sources
+webetl extract sources.yml -s my_source                 # Extract specific source
+webetl extract sources.yml --no-track                   # Extract without tracking
 
-# Transform and load default to today's date if not specified
-webetl transform                               # Uses today's date
-webetl load                                    # Uses today's date
+webetl transform sources.yml                            # Transform all sources, today's date
+webetl transform sources.yml -s my_source               # Transform specific source
+webetl transform sources.yml -d 2024-01-15              # Transform specific date
+
+webetl load sources.yml                                 # Load all sources, today's date
+webetl load sources.yml -s my_source                    # Load specific source
+webetl load sources.yml -d 2024-01-15                   # Load specific date
 
 # Manage fetch history
-webetl fetches --limit 50              # Show recent fetches
-webetl reset-tracking                  # Reset today's tracking (allows re-fetching)
-webetl reset-tracking 2024-01-15       # Reset tracking for specific date
+webetl fetches --limit 50                               # Show recent fetches
+webetl reset-tracking                                   # Reset today's tracking
+webetl reset-tracking 2024-01-15                        # Reset specific date
 ```
 
 ### Using the Python API
@@ -97,12 +101,17 @@ dispatcher = Dispatcher(path="sources.yml", source_name="my_source", no_track=Tr
 dispatcher.execute_jobs()
 dispatcher.save_results()
 
-# Transform with LLM (uses today's date if not specified)
-transform = Transform()  # or Transform(data_date="2024-01-01")
+# Transform with LLM
+transform = Transform(path="sources.yml")  # All sources, today's date
+transform = Transform(path="sources.yml", source_name="my_source")  # Specific source
+transform = Transform(path="sources.yml", data_date="2024-01-01")  # Specific date
+transform = Transform(path="sources.yml", source_name="my_source", data_date="2024-01-01")
 transform.process_jobs()
 
 # Load into final format
-load = Load()  # or Load(data_date="2024-01-01")
+load = Load(path="sources.yml")  # All sources, today's date
+load = Load(path="sources.yml", source_name="my_source")  # Specific source
+load = Load(path="sources.yml", data_date="2024-01-01")  # Specific date
 load.process_jobs()
 ```
 
@@ -132,12 +141,12 @@ def run_etl(config_file: str, source_name: str = None):
 
     # Transform (automatically uses today's date)
     logger.info("Transforming data...")
-    transform = Transform()
+    transform = Transform(path=config_file, source_name=source_name)
     transform.process_jobs()
 
     # Load
     logger.info("Loading data...")
-    load = Load()
+    load = Load(path=config_file, source_name=source_name)
     load.process_jobs()
 
     logger.info("ETL pipeline completed!")
@@ -240,15 +249,30 @@ webetl init --force                  # Overwrite existing files
 ### ETL Commands
 
 ```bash
-webetl run <config.yml>              # Run full ETL pipeline (uses today's date)
-webetl run <config.yml> --no-track   # Run without URL tracking (re-fetch all URLs)
-webetl extract <config.yml>          # Extract data from sources only
-webetl extract <config.yml> --no-track  # Extract without URL tracking
-webetl transform [YYYY-MM-DD]        # Transform extracted data (defaults to today)
-webetl load [YYYY-MM-DD]             # Load transformed data (defaults to today)
+# Run full pipeline
+webetl run <config.yml>                          # All sources, today's date
+webetl run <config.yml> -s <source>              # Specific source
+webetl run <config.yml> -d YYYY-MM-DD            # Specific date for transform/load
+webetl run <config.yml> -s <source> -d YYYY-MM-DD  # Both options
+webetl run <config.yml> --no-track               # Disable URL tracking
+
+# Extract only
+webetl extract <config.yml>                      # All sources
+webetl extract <config.yml> -s <source>          # Specific source
+webetl extract <config.yml> --no-track           # Without URL tracking
+
+# Transform only
+webetl transform <config.yml>                    # All sources, today's date
+webetl transform <config.yml> -s <source>        # Specific source
+webetl transform <config.yml> -d YYYY-MM-DD      # Specific date
+
+# Load only
+webetl load <config.yml>                         # All sources, today's date
+webetl load <config.yml> -s <source>             # Specific source
+webetl load <config.yml> -d YYYY-MM-DD           # Specific date
 ```
 
-**Note:** The `run` command extracts data and then processes it using today's date for transform/load. If you want to process previously extracted data from a different date, use `transform` and `load` separately with a date argument.
+**Note:** The `run` command extracts data and then processes it. Use `-d` to specify a date for transform/load stages.
 
 **URL Tracking:** By default, WebETL tracks fetched URLs to prevent re-processing. Use `--no-track` to disable this and re-fetch all URLs (useful for testing or forcing updates).
 
@@ -303,8 +327,20 @@ nav.start()  # Populates nav.jobs with URLs to extract
 ```python
 from transform import Transform
 
-# Process all jobs for a specific date
-transform = Transform(data_date="2024-01-01")
+# Process all sources for today's date
+transform = Transform(path="sources.yml")
+transform.process_jobs()
+
+# Process specific source
+transform = Transform(path="sources.yml", source_name="my_source")
+transform.process_jobs()
+
+# Process specific date
+transform = Transform(path="sources.yml", data_date="2024-01-01")
+transform.process_jobs()
+
+# Both source and date
+transform = Transform(path="sources.yml", source_name="my_source", data_date="2024-01-01")
 transform.process_jobs()
 ```
 
@@ -313,8 +349,16 @@ transform.process_jobs()
 ```python
 from load import Load
 
-# Generate output files
-load = Load(data_date="2024-01-01")
+# Process all sources for today's date
+load = Load(path="sources.yml")
+load.process_jobs()
+
+# Process specific source
+load = Load(path="sources.yml", source_name="my_source")
+load.process_jobs()
+
+# Process specific date
+load = Load(path="sources.yml", data_date="2024-01-01")
 load.process_jobs()
 ```
 
@@ -325,7 +369,7 @@ from source import Source
 
 # Load and generate jobs from config
 source = Source(path="sources.yml", source_name="my_source")
-jobs = source.gen_jobs()
+jobs = source.gen_jobs()  # Returns list[Job]
 ```
 
 ## Data Storage
@@ -334,7 +378,6 @@ WebETL organizes data in a structured directory:
 
 ```
 data/
-├── jobs/                 # Job configurations (pickle)
 ├── raw/
 │   └── YYYY-MM-DD/       # Extracted raw data (JSON) by date
 ├── silver/
@@ -343,6 +386,8 @@ data/
 │   └── YYYY-MM-DD/       # Final output (RSS/JSON) by date
 └── runs.db               # SQLite database for fetch tracking
 ```
+
+**Note:** Job configurations are loaded directly from the YAML config file at runtime, not stored as separate files.
 
 ## Development
 
