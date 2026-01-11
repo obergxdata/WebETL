@@ -30,6 +30,7 @@ class Nav:
     ftype: str
     url: str | None = None
     must_contain: list[str] | None = None
+    must_contain_all: list[str] | None = None
 
 
 class Source:
@@ -76,6 +77,7 @@ class Source:
                             selector=navigate["selector"],
                             ftype=navigate["ftype"],
                             must_contain=navigate.get("must_contain"),
+                            must_contain_all=navigate.get("must_contain_all"),
                         )
                     else:
                         nav = Nav(
@@ -83,6 +85,7 @@ class Source:
                             selector=navigate["selector"],
                             ftype=navigate["ftype"],
                             must_contain=navigate.get("must_contain"),
+                            must_contain_all=navigate.get("must_contain_all"),
                         )
 
                     navs.append(nav)

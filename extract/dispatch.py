@@ -328,16 +328,32 @@ class Navigate:
                 selector=template.selector,
                 ftype=template.ftype,
                 must_contain=template.must_contain,
+                must_contain_all=template.must_contain_all,
             )
             for url in urls
         ]
 
     def filter_urls(self, urls: list[str], nav: Nav) -> list[str]:
-        if not nav.must_contain:
+        # If no filters, return all URLs
+        if not nav.must_contain and not nav.must_contain_all:
             return urls
-        return [
-            url for url in urls if all(pattern in url for pattern in nav.must_contain)
-        ]
+
+        filtered_urls = []
+        for url in urls:
+            # Check must_contain (OR logic - at least one must match)
+            if nav.must_contain:
+                if not any(pattern in url for pattern in nav.must_contain):
+                    continue  # Skip this URL, doesn't match OR condition
+
+            # Check must_contain_all (AND logic - all must match)
+            if nav.must_contain_all:
+                if not all(pattern in url for pattern in nav.must_contain_all):
+                    continue  # Skip this URL, doesn't match AND condition
+
+            # URL passed both filters (if present)
+            filtered_urls.append(url)
+
+        return filtered_urls
 
     def navigate(self, nav: Nav) -> list[str]:
 

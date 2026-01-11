@@ -328,3 +328,36 @@ def test_navigate_handles_broken_navigation(caplog, test_sources_yml):
 
     # Verify job.urls is empty or None (navigation failed)
     assert not job.urls or len(job.urls) == 0
+
+
+def test_must_contain_all_filter(test_server, test_sources_yml):
+    """Test must_contain_all filter with AND logic."""
+    d = Navigate(path=test_sources_yml, source_name="test_must_contain_all")
+    d.start()
+
+    job = d.jobs[0]
+    assert job.name == "test_must_contain_all"
+
+    # Verify navigation config has both must_contain and must_contain_all
+    assert job.nav[0].must_contain == ["article"]
+    assert job.nav[0].must_contain_all == ["_1", ".html"]
+
+    # Should only match article_1.html (has "article" AND "_1" AND ".html")
+    # Should NOT match article_2.html or article_3.html (missing "_1")
+    assert job.urls == [f"{test_server}/html/article_1.html"]
+
+
+def test_dispatcher_must_contain_all(test_server, test_sources_yml):
+    """Test dispatcher execution with must_contain_all filter."""
+    d = Dispatcher(path=test_sources_yml, source_name="test_must_contain_all")
+    d.execute_jobs()
+
+    source_result = d.results[0]
+    assert source_result.source_name == "test_must_contain_all"
+    assert len(source_result.results) == 1
+
+    # Should only have fetched article_1.html
+    page_result = source_result.results[0]
+    assert page_result.url == f"{test_server}/html/article_1.html"
+    assert page_result.fields[0].name == "title"
+    assert "Article 1" in page_result.fields[0].data

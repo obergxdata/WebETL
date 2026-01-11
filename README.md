@@ -467,7 +467,7 @@ source:
         selector: //a[@class='category']/@href
       - ftype: html
         selector: //a[@class='product']/@href
-        must_contain: ["/product/"]
+        must_contain: ["/product/"]  # OR logic: URL must contain "/product/"
     extract:
       ftype: html
       fields:
@@ -476,6 +476,36 @@ source:
         - name: price
           selector: //span[@class='price']/text()
 ```
+
+### URL Filtering with must_contain and must_contain_all
+
+Filter extracted URLs using pattern matching:
+
+```yaml
+source:
+  - name: filtered_documents
+    start: https://example.com/documents
+    navigate:
+      - ftype: html
+        selector: //a/@href
+        must_contain: [".pdf", ".doc"]        # OR logic: must have .pdf OR .doc
+        must_contain_all: ["report", "2024"]  # AND logic: must have "report" AND "2024"
+    extract:
+      ftype: pdf
+      fields: []
+```
+
+**Filter Logic:**
+- `must_contain`: OR logic - URL must contain **at least one** of the specified strings
+- `must_contain_all`: AND logic - URL must contain **all** of the specified strings
+- When both are present: URL must satisfy **both** conditions
+
+**Example matches for the above config:**
+- `https://example.com/annual-report-2024.pdf` ✓ (has .pdf + report + 2024)
+- `https://example.com/monthly-report-2024.doc` ✓ (has .doc + report + 2024)
+- `https://example.com/report.pdf` ✗ (missing "2024")
+- `https://example.com/2024.pdf` ✗ (missing "report")
+- `https://example.com/report-2024.html` ✗ (missing .pdf or .doc)
 
 ### PDF Content Extraction
 

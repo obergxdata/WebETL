@@ -92,3 +92,16 @@ source:
         must_contain: [.pdf]
     extract:
       ftype: pdf
+
+  - name: test_must_contain_all
+    start: http://localhost:8888/html/home.html
+    navigate:
+      - selector: //ul/li/a/@href
+        ftype: html
+        must_contain: [article]
+        must_contain_all: ["_1", ".html"]
+    extract:
+      ftype: html
+      fields:
+        - name: title
+          selector: /html/body/h1
