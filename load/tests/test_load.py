@@ -5,13 +5,13 @@ from datetime import datetime
 import xml.etree.ElementTree as ET
 
 
-def test_load(dispatch_transform_all_sources):
+def test_load(dispatch_transform_all_sources, test_sources_yml):
     """Test that load creates gold layer files with correct structure."""
     # dispatch_transform_all_sources runs the full pipeline (dispatch + transform)
     # Now we run load to create gold layer files
     data_date = datetime.now().strftime("%Y-%m-%d")
     dm = DataManager(data_date)
-    load = Load(data_date)
+    load = Load(path=test_sources_yml)
 
     # Process all jobs to create gold layer files
     load.process_jobs()

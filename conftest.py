@@ -102,14 +102,7 @@ def cleanup_generated_test_files():
             if not any(gold_data_dir.iterdir()):
                 gold_data_dir.rmdir()
 
-        # Remove job pickle files for test sources (files starting with test or test_)
-        jobs_dir = root_dir / "data" / "jobs" / today
-        if jobs_dir.exists():
-            for pkl_file in jobs_dir.glob("test*.pkl"):
-                pkl_file.unlink()
-            # Remove directory if empty
-            if not any(jobs_dir.iterdir()):
-                jobs_dir.rmdir()
+        # Note: Job pickle files are no longer created (jobs loaded from YAML)
 
         # Remove test run records from database
         from extract.dispatch import RunTracker
@@ -145,7 +138,6 @@ def dispatch_transform_all_sources(test_sources_yml):
     """
     from extract.dispatch import Dispatcher
     from transform.transform import Transform
-    from datetime import datetime
 
     # Run dispatch
     dispatcher = Dispatcher(path=test_sources_yml, source_name=None)
@@ -153,8 +145,7 @@ def dispatch_transform_all_sources(test_sources_yml):
     dispatcher.save_results()
 
     # Run transform
-    data_date = datetime.now().strftime("%Y-%m-%d")
-    transform = Transform(data_date)
+    transform = Transform(path=test_sources_yml)
     transform.process_jobs()
 
     return dispatcher, transform

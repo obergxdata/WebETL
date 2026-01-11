@@ -1,5 +1,5 @@
-from source.data_manager import DataManager
 from source.source_manager import Job
+from source.base_processor import BaseProcessor
 import logging
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
@@ -7,35 +7,22 @@ from xml.dom import minidom
 logger = logging.getLogger(__name__)
 
 
-class Load:
+class Load(BaseProcessor):
 
-    def __init__(self, data_date: str | None = None):
-        self.dm = DataManager(data_date)
+    def _get_input_layer(self) -> str:
+        """Get the data layer to read from."""
+        return "silver"
 
-    def process_jobs(self):
-        """Process all jobs and generate gold layer files based on load configuration."""
-        logger.info(f"Processing jobs for date: {self.dm.data_date}")
+    def _should_process(self, job: Job, job_name: str, data: dict) -> bool:
+        """Check if this job has a load configuration."""
+        if not hasattr(job, 'load') or not job.load:
+            logger.info(f"No load configuration for {job_name}, skipping")
+            return False
+        return True
 
-        if not self.dm.silver_dir.exists():
-            logger.error(f"Silver directory does not exist: {self.dm.silver_dir}")
-            return
-
-        # Loop through each silver data file
-        for source_name, silver_data in self.dm.iter_jsons(self.dm.silver_dir):
-            # Load corresponding job
-            job = self.dm.load_pickle(source_name, self.dm.jobs_dir)
-            if job is None:
-                logger.warning(f"No job found for {source_name}")
-                continue
-
-            # Check if this job has a load configuration
-            if not hasattr(job, 'load') or not job.load:
-                logger.info(f"No load configuration for {source_name}, skipping")
-                continue
-
-            # Process this job with its silver data
-            logger.info(f"Loading {source_name}...")
-            self.load(silver_data, job)
+    def _process(self, job_name: str, data: dict, job: Job):
+        """Load the silver data to gold."""
+        self.load(data, job)
 
     def load(self, silver_data: dict, job: Job):
         """Generate gold layer files from silver data based on job load configuration.

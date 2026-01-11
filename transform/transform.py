@@ -1,5 +1,5 @@
 from source.source_manager import Job
-from source.data_manager import DataManager
+from source.base_processor import BaseProcessor
 import logging
 import os
 from openai import OpenAI
@@ -9,34 +9,24 @@ logger = logging.getLogger(__name__)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
-class Transform:
+class Transform(BaseProcessor):
 
-    def __init__(self, data_date: str | None = None):
-        self.dm = DataManager(data_date)
+    def _get_input_layer(self) -> str:
+        """Get the data layer to read from."""
+        return "raw"
 
-    def process_jobs(self):
-        logger.info(f"Processing jobs for date: {self.dm.data_date}")
-        if not self.dm.jobs_dir.exists():
-            logger.error(f"Jobs directory does not exist: {self.dm.jobs_dir}")
-            return
+    def _should_process(self, job: Job, job_name: str, data: dict) -> bool:
+        """Check if this job should be transformed."""
+        # If transform is False, save directly to silver (preserving extraction_date)
+        if not job.transform:
+            self.dm.save_json(data, job_name, layer="silver")
+            logger.info(f"Saved {job_name} to silver (no transform needed)")
+            return False
+        return True
 
-        # Loop through each job file
-        for job_name, job in self.dm.iter_pickles(self.dm.jobs_dir):
-            # Load corresponding raw data
-            raw_data = self.dm.load_json(job_name, layer="raw")
-            if raw_data is None:
-                logger.warning(f"No raw data found for {job_name}")
-                continue
-
-            # If transform is False, save directly to silver (preserving extraction_date)
-            if not job.transform:
-                self.dm.save_json(raw_data, job_name, layer="silver")
-                logger.info(f"Saved {job_name} to silver (no transform needed)")
-                continue
-
-            # Process this job with its raw data
-            logger.info(f"Processing {job_name}...")
-            self.transform(raw_data, job)
+    def _process(self, job_name: str, data: dict, job: Job):
+        """Transform the raw data to silver."""
+        self.transform(data, job)
 
     def _process_llm_step(self, data: dict, llm_step: dict, client: OpenAI) -> dict:
         """Process a single LLM step on the data.

@@ -102,20 +102,7 @@ class Source:
                 )
             )
 
-        # Automatically save jobs after generating them
-        self.save_jobs()
-
         return self.jobs
-
-    def save_jobs(self):
-        """Save jobs as pickle files using absolute path: root/data/jobs/YYYY-MM-DD/name.pkl"""
-        dm = DataManager()  # Uses today's date
-
-        # Save each job as a pickle file
-        for job in self.jobs:
-            dm.save_pickle(job, job.name, dm.jobs_dir)
-
-        return dm.jobs_dir
 
     def __getitem__(self, index):
         return self.jobs[index]

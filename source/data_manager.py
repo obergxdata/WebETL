@@ -1,8 +1,6 @@
 from pathlib import Path
 from datetime import datetime
-import pickle
 import json
-from typing import Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -31,7 +29,6 @@ class DataManager:
 
     def _setup_directories(self):
         """Setup all data directory paths."""
-        self.jobs_dir = self.root_dir / "data" / "jobs" / self.data_date
         self.raw_dir = self.root_dir / "data" / "raw" / self.data_date
         self.silver_dir = self.root_dir / "data" / "silver" / self.data_date
         self.gold_dir = self.root_dir / "data" / "gold" / self.data_date
@@ -40,80 +37,6 @@ class DataManager:
         """Ensure a directory exists, creating it if necessary."""
         directory.mkdir(parents=True, exist_ok=True)
         return directory
-
-    # Pickle operations
-    def save_pickle(
-        self, obj: Any, filename: str, directory: Path | None = None
-    ) -> Path:
-        """Save an object as a pickle file.
-
-        Args:
-            obj: Object to pickle
-            filename: Name of the file (with or without .pkl extension)
-            directory: Directory to save in (defaults to jobs_dir)
-
-        Returns:
-            Path to the saved file
-        """
-        if directory is None:
-            directory = self.jobs_dir
-
-        self.ensure_dir(directory)
-
-        if not filename.endswith(".pkl"):
-            filename = f"{filename}.pkl"
-
-        file_path = directory / filename
-        with open(file_path, "wb") as f:
-            pickle.dump(obj, f)
-
-        logger.info(f"Saved pickle to {file_path}")
-        return file_path
-
-    def load_pickle(self, filename: str, directory: Path | None = None) -> Any | None:
-        """Load an object from a pickle file.
-
-        Args:
-            filename: Name of the file (with or without .pkl extension)
-            directory: Directory to load from (defaults to jobs_dir)
-
-        Returns:
-            Loaded object or None if file doesn't exist
-        """
-        if directory is None:
-            directory = self.jobs_dir
-
-        if not filename.endswith(".pkl"):
-            filename = f"{filename}.pkl"
-
-        file_path = directory / filename
-        if not file_path.exists():
-            logger.warning(f"Pickle file not found: {file_path}")
-            return None
-
-        with open(file_path, "rb") as f:
-            return pickle.load(f)
-
-    def iter_pickles(self, directory: Path | None = None):
-        """Iterate over all pickle files in a directory.
-
-        Args:
-            directory: Directory to iterate (defaults to jobs_dir)
-
-        Yields:
-            Tuples of (filename_stem, loaded_object)
-        """
-        if directory is None:
-            directory = self.jobs_dir
-
-        if not directory.exists():
-            logger.warning(f"Directory does not exist: {directory}")
-            return
-
-        for pkl_file in directory.glob("*.pkl"):
-            obj = self.load_pickle(pkl_file.name, directory)
-            if obj is not None:
-                yield pkl_file.stem, obj
 
     # JSON operations
     def save_json(
@@ -253,4 +176,3 @@ class DataManager:
 
         with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
-

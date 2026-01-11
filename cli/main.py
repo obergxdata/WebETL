@@ -37,7 +37,6 @@ def init(name, force):
 
     # Create data directory structure
     directories = [
-        project_root / "data" / "jobs",
         project_root / "data" / "raw",
         project_root / "data" / "silver",
         project_root / "data" / "gold",
@@ -161,11 +160,18 @@ ENV/
 @cli.command()
 @click.argument("config_file", type=click.Path(exists=True))
 @click.option("--source", "-s", help="Specific source name to process (processes all if not specified)")
+@click.option("--date", "-d", help="Date string (YYYY-MM-DD) for transform/load. Defaults to today if not specified")
 @click.option("--no-track", is_flag=True, help="Disable fetch tracking, allowing re-fetching of already processed URLs")
-def run(config_file, source, no_track):
+def run(config_file, source, date, no_track):
     """Run full ETL pipeline: extract, transform, and load.
 
-    Extract uses current time, transform and load use today's date.
+    Extract always uses current time. Transform and load use --date if specified, or today's date.
+
+    Examples:
+        webetl run sources.yml                    # All sources, today's date
+        webetl run sources.yml -s my_source       # Specific source, today's date
+        webetl run sources.yml -d 2024-01-15      # All sources, specific date
+        webetl run sources.yml -s my_source -d 2024-01-15  # Specific source and date
     """
     click.echo(f"Running full ETL pipeline for {config_file}")
     if source:
@@ -183,14 +189,14 @@ def run(config_file, source, no_track):
 
         # Transform
         click.echo("\n[2/3] Transforming data...")
-        transform = Transform()
+        transform = Transform(path=config_file, data_date=date, source_name=source)
         click.echo(f"  Transform/Load date: {transform.dm.data_date}")
         transform.process_jobs()
         click.echo("  ✓ Transformation complete")
 
         # Load
         click.echo("\n[3/3] Loading data...")
-        load = Load()
+        load = Load(path=config_file, data_date=date, source_name=source)
         load.process_jobs()
         click.echo("  ✓ Loading complete")
 
@@ -224,38 +230,44 @@ def extract(config_file, source, no_track):
 
 
 @cli.command()
-@click.argument("date", required=False, default=None)
-def transform(date):
+@click.argument("config_file", type=click.Path(exists=True))
+@click.option("--source", "-s", help="Specific source name to transform")
+@click.option("--date", "-d", help="Date string (YYYY-MM-DD). Defaults to today if not specified")
+def transform(config_file, source, date):
     """Transform extracted data using LLM.
 
-    DATE: Optional date string (YYYY-MM-DD). Defaults to today if not specified.
-
     Examples:
-        webetl transform              # Uses today's date
-        webetl transform 2024-01-15   # Uses specified date
+        webetl transform sources.yml              # Uses today's date, all sources
+        webetl transform sources.yml -d 2024-01-15   # Uses specified date
+        webetl transform sources.yml -s my_source    # Only transform specific source
     """
-    transform_instance = Transform(data_date=date)
+    transform_instance = Transform(path=config_file, data_date=date, source_name=source)
 
     click.echo(f"Transforming data for {transform_instance.dm.data_date}")
+    if source:
+        click.echo(f"  Source: {source}")
     transform_instance.process_jobs()
 
     click.echo("✓ Transformation complete")
 
 
 @cli.command()
-@click.argument("date", required=False, default=None)
-def load(date):
+@click.argument("config_file", type=click.Path(exists=True))
+@click.option("--source", "-s", help="Specific source name to load")
+@click.option("--date", "-d", help="Date string (YYYY-MM-DD). Defaults to today if not specified")
+def load(config_file, source, date):
     """Load transformed data into final format.
 
-    DATE: Optional date string (YYYY-MM-DD). Defaults to today if not specified.
-
     Examples:
-        webetl load              # Uses today's date
-        webetl load 2024-01-15   # Uses specified date
+        webetl load sources.yml              # Uses today's date, all sources
+        webetl load sources.yml -d 2024-01-15   # Uses specified date
+        webetl load sources.yml -s my_source    # Only load specific source
     """
-    load_instance = Load(data_date=date)
+    load_instance = Load(path=config_file, data_date=date, source_name=source)
 
     click.echo(f"Loading data for {load_instance.dm.data_date}")
+    if source:
+        click.echo(f"  Source: {source}")
     load_instance.process_jobs()
 
     click.echo("✓ Loading complete")

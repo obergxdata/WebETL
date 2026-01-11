@@ -7,11 +7,11 @@ import json
 DATA_DATE = datetime.now().strftime("%Y-%m-%d")
 
 
-def test_transform(dispatch_all_sources):
+def test_transform(dispatch_all_sources, test_sources_yml):
     """Test the transform function with all sources dispatched."""
     dispatcher = dispatch_all_sources
     dispatcher.save_results()
-    transformer = Transform()
+    transformer = Transform(path=test_sources_yml)
     transformer.process_jobs()
 
     # Verify silver files exist and contain expected keys
