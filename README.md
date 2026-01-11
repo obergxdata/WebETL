@@ -12,7 +12,10 @@ A flexible web content extraction, transformation, and loading (ETL) pipeline fo
 - **Flexible Extraction**: Extract data from HTML, RSS feeds, and PDF documents
 - **LLM Transformation**: Transform and analyze extracted content using large language models (OpenAI)
 - **Multiple Output Formats**: Save results as JSON or generate RSS feeds
-- **Duplicate Prevention**: Automatic tracking of fetched URLs to prevent redundant processing
+- **Smart URL Tracking**: Automatic tracking of fetched URLs to prevent duplicate processing
+  - Each URL can only be fetched once per source (persistent across runs)
+  - Stored in SQLite database for reliability
+  - Use `--no-track` to bypass or `reset-tracking` to clear history
 - **Concurrent Processing**: Multi-process extraction for efficient and stable data collection
 
 ## Installation
@@ -221,7 +224,11 @@ Define your data sources in YAML with navigation steps, extraction rules, transf
 - Navigate through websites using CSS/XPath selectors
 - Extract data from HTML, RSS, and PDF sources
 - Auto-resolve content type with `ftype: mixed`
-- Track fetched URLs to prevent duplicates
+- **URL Tracking**: Automatically tracks fetched URLs to prevent duplicates
+  - Each URL can only be fetched once per source
+  - Tracking data is stored in SQLite database (`data/runs.db`)
+  - Use `--no-track` flag to bypass tracking and re-fetch URLs
+  - Use `webetl reset-tracking` to clear tracking and allow re-fetching
 - Concurrent processing for performance
 - Save raw data to JSON
 
@@ -283,10 +290,24 @@ webetl fetches [--limit N]           # Show recently fetched URLs
 webetl reset-tracking [YYYY-MM-DD]   # Reset tracking for date (allows re-fetching)
 ```
 
+**Understanding URL Tracking:**
+
+WebETL automatically tracks every URL it fetches to prevent duplicate processing. This tracking is:
+- **Per-source**: Each source maintains its own fetch history
+- **Persistent**: Stored in SQLite database (`data/runs.db`), survives between runs
+- **Permanent**: Once fetched, a URL won't be re-fetched unless you explicitly reset tracking
+
+**Common scenarios:**
+- **Daily runs**: URLs are only fetched once, ever (unless content location changes)
+- **Testing/debugging**: Use `--no-track` to bypass tracking temporarily
+- **Force re-fetch**: Use `webetl reset-tracking` to clear history for specific dates
+- **Clean slate**: Delete `data/runs.db` to clear all tracking history
+
 ### Common Options
 
 ```bash
 --source, -s <name>                  # Process specific source only
+--date, -d YYYY-MM-DD                # Process specific date (for transform/load)
 --no-track                           # Disable URL tracking (for run/extract commands)
 --help                               # Show help
 --version                            # Show version
