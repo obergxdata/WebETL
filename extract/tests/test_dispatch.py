@@ -451,3 +451,34 @@ def test_dispatcher_test_json_direct(test_server, test_sources_yml):
     links = [field.data for field in page_result.fields if field.name == "link"]
     for link in links:
         assert "/html/article" in link
+
+
+def test_navigate_test_json_max_items(test_server, test_sources_yml):
+    """Test navigation with max_items limit for JSON source."""
+    d = Navigate(path=test_sources_yml, source_name="test_json_max_items")
+    d.start()
+
+    job = d.jobs[0]
+    assert job.name == "test_json_max_items"
+    assert job.nav[0].max_items == 2
+
+    # Should only have 2 URLs despite JSON having 3 articles
+    assert len(job.urls) == 2
+    assert all(url.startswith(f"{test_server}/html/article") for url in job.urls)
+
+
+def test_dispatcher_test_json_max_items(test_server, test_sources_yml):
+    """Test dispatcher execution with max_items limit for JSON source."""
+    d = Dispatcher(path=test_sources_yml, source_name="test_json_max_items")
+    d.execute_jobs()
+
+    source_result = d.results[0]
+    assert source_result.source_name == "test_json_max_items"
+
+    # Should only have extracted 2 pages
+    assert len(source_result.results) == 2
+
+    for page_result in source_result.results:
+        assert len(page_result.fields) == 1
+        assert page_result.fields[0].name == "title"
+        assert "Article" in page_result.fields[0].data

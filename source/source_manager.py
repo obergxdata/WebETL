@@ -31,6 +31,7 @@ class Nav:
     url: str | None = None
     must_contain: list[str] | None = None
     must_contain_all: list[str] | None = None
+    max_items: int | None = None
 
 
 class Source:
@@ -78,6 +79,7 @@ class Source:
                             ftype=navigate["ftype"],
                             must_contain=navigate.get("must_contain"),
                             must_contain_all=navigate.get("must_contain_all"),
+                            max_items=navigate.get("max_items"),
                         )
                     else:
                         nav = Nav(
@@ -86,6 +88,7 @@ class Source:
                             ftype=navigate["ftype"],
                             must_contain=navigate.get("must_contain"),
                             must_contain_all=navigate.get("must_contain_all"),
+                            max_items=navigate.get("max_items"),
                         )
 
                     navs.append(nav)

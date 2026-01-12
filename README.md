@@ -547,6 +547,7 @@ source:
     navigate:
       - ftype: json
         selector: items.link            # Extract links from JSON
+        max_items: 10                   # Optional: Limit to first 10 items
     extract:
       ftype: html
       fields:

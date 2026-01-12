@@ -379,6 +379,11 @@ class Navigate:
 
         relative_urls = self.filter_urls(selector(doc, nav.selector), nav)
 
+        # Apply max_items limit if specified
+        if nav.max_items and len(relative_urls) > nav.max_items:
+            logger.info(f"Limiting navigation results from {len(relative_urls)} to {nav.max_items} items")
+            relative_urls = relative_urls[:nav.max_items]
+
         result_urls = []
         for url in relative_urls:
             if not isinstance(url, str):
@@ -404,7 +409,15 @@ class Navigate:
         return [entry.get(selector) for entry in doc.entries]
 
     def select_json(self, doc: bytes, selector: str) -> list:
-        data = json.loads(doc)
+        if not doc:
+            logger.error("Empty document received for JSON parsing")
+            return []
+
+        try:
+            data = json.loads(doc)
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as e:
+            logger.error(f"Failed to parse JSON: {type(e).__name__}: {e}")
+            return []
 
         # Navigate through the JSON structure using dot notation
         # e.g., "items.link" would get all link fields from items array

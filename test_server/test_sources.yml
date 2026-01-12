@@ -132,3 +132,15 @@ source:
           selector: items.date
         - name: link
           selector: items.link
+
+  - name: test_json_max_items
+    start: http://localhost:8888/json/test.json
+    navigate:
+      - selector: items.link
+        ftype: json
+        max_items: 2
+    extract:
+      ftype: html
+      fields:
+        - name: title
+          selector: /html/body/h1
