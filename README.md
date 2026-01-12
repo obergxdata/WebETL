@@ -8,8 +8,8 @@ A flexible web content extraction, transformation, and loading (ETL) pipeline fo
 
 ## Features
 
-- **Multi-step Navigation**: Navigate through websites and RSS feeds in multiple steps to discover content
-- **Flexible Extraction**: Extract data from HTML, RSS feeds, and PDF documents
+- **Multi-step Navigation**: Navigate through websites, RSS feeds, and JSON APIs in multiple steps to discover content
+- **Flexible Extraction**: Extract data from HTML, RSS feeds, JSON APIs, and PDF documents
 - **LLM Transformation**: Transform and analyze extracted content using large language models (OpenAI)
 - **Multiple Output Formats**: Save results as JSON or generate RSS feeds
 - **Smart URL Tracking**: Automatic tracking of fetched URLs to prevent duplicate processing
@@ -222,8 +222,9 @@ Define your data sources in YAML with navigation steps, extraction rules, transf
 
 ### 2. Extract
 - Navigate through websites using CSS/XPath selectors
-- Extract data from HTML, RSS, and PDF sources
+- Extract data from HTML, RSS, JSON, and PDF sources
 - Auto-resolve content type with `ftype: mixed`
+- JSON extraction using dot notation (e.g., `items.title`)
 - **URL Tracking**: Automatically tracks fetched URLs to prevent duplicates
   - Each URL can only be fetched once per source
   - Tracking data is stored in SQLite database (`data/runs.db`)
@@ -521,9 +522,68 @@ source:
       fields: []  # Automatically extracts full text content
 ```
 
+### JSON API Extraction
+
+Extract data from JSON APIs using dot notation to navigate the JSON structure:
+
+```yaml
+source:
+  # Direct JSON extraction (no navigation)
+  - name: json_api
+    start: https://api.example.com/articles.json
+    extract:
+      ftype: json
+      fields:
+        - name: title
+          selector: items.title        # Extract all titles from items array
+        - name: description
+          selector: items.description   # Extract all descriptions
+        - name: link
+          selector: items.link          # Extract all links
+
+  # Navigate from JSON to HTML pages
+  - name: json_to_html
+    start: https://api.example.com/articles.json
+    navigate:
+      - ftype: json
+        selector: items.link            # Extract links from JSON
+    extract:
+      ftype: html
+      fields:
+        - name: title
+          selector: //h1/text()
+        - name: content
+          selector: //article/text()
+```
+
+**JSON Selector Syntax:**
+- Use dot notation to navigate: `parent.child.field`
+- Automatically extracts from arrays: `items.title` extracts title from each item
+- Works with nested objects: `data.results.name`
+
+**Example JSON Structure:**
+```json
+{
+  "items": [
+    {
+      "title": "Article 1",
+      "description": "First article",
+      "link": "/article-1.html"
+    },
+    {
+      "title": "Article 2",
+      "description": "Second article",
+      "link": "/article-2.html"
+    }
+  ]
+}
+```
+
+Using `selector: items.title` would extract: `["Article 1", "Article 2"]`
+
 ### Auto-Resolving Content Type (Mixed)
 
-Use `ftype: mixed` to automatically detect whether content is HTML, RSS, or PDF:
+Use `ftype: mixed` to automatically detect whether content is HTML, RSS, JSON, or PDF:
 
 ```yaml
 source:

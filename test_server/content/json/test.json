@@ -1,0 +1,25 @@
+{
+    "items": [
+        {
+            "title": "Article 1: Introduction to RSS Feeds",
+            "date": "January 12, 2026",
+            "description": "RSS (Really Simple Syndication) is a web feed format used to publish frequently updated content. It allows users to stay informed about new content without having to manually visit websites.",
+            "type": "article",
+            "link": "/html/article_1.html"
+        },
+        {
+            "title": "Article 2: Understanding HTML Parsing",
+            "date": "January 12, 2026",
+            "description": "HTML parsing is the process of analyzing HTML documents to extract structured data. Modern parsers can handle malformed HTML and provide a consistent DOM representation.",
+            "type": "article",
+            "link": "/html/article_2.html"
+        },
+        {
+            "title": "Article 3: Web Scraping Best Practices",
+            "date": "January 12, 2026",
+            "description": "When scraping websites, it's important to be respectful and follow best practices. Always check robots.txt, rate-limit your requests, and handle errors gracefully.",
+            "type": "article",
+            "link": "/html/article_3.html"
+        }
+    ]
+}

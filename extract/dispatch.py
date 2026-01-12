@@ -4,14 +4,16 @@ from extract.http import visit_html
 from extract.rss import visit_rss
 from lxml import html as lxml_html
 from urllib.parse import urljoin, quote
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
 from io import BytesIO
 import pypdfium2 as pdfium
 import sqlite3
+import json
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -362,18 +364,20 @@ class Navigate:
 
         if nav.ftype == "rss":
             doc = visit_rss(url=nav.url)
-            if not doc:
-                return []
-            relative_urls = self.select_rss(doc, nav.selector)
+            selector = self.select_rss
         elif nav.ftype == "html":
             doc = visit_html(url=nav.url)
-            if not doc:
-                return []
-            relative_urls = self.select_html(doc, nav.selector)
+            selector = self.select_html
+        elif nav.ftype == "json":
+            doc = visit_html(url=nav.url, text=False)
+            selector = self.select_json
         else:
             raise Exception(f"Unsupported navigation ftype: {nav.ftype}")
 
-        relative_urls = self.filter_urls(relative_urls, nav)
+        if not doc:
+            return []
+
+        relative_urls = self.filter_urls(selector(doc, nav.selector), nav)
 
         result_urls = []
         for url in relative_urls:
@@ -399,11 +403,40 @@ class Navigate:
     def select_rss(self, doc: str, selector: str) -> list:
         return [entry.get(selector) for entry in doc.entries]
 
+    def select_json(self, doc: bytes, selector: str) -> list:
+        data = json.loads(doc)
+
+        # Navigate through the JSON structure using dot notation
+        # e.g., "items.link" would get all link fields from items array
+        keys = selector.split(".")
+
+        result = data
+        for key in keys:
+            if isinstance(result, dict):
+                result = result.get(key, [])
+            elif isinstance(result, list):
+                # If we have a list, extract the key from each item
+                result = [
+                    item.get(key)
+                    for item in result
+                    if isinstance(item, dict) and key in item
+                ]
+            else:
+                return []
+
+        # Ensure we always return a list
+        if isinstance(result, list):
+            return result
+        else:
+            return [result] if result else []
+
     def auto_ftype(self, url: str) -> str:
         if url.endswith(".rss") or url.endswith(".xml"):
             return "rss"
         elif url.endswith(".pdf"):
             return "pdf"
+        elif url.endswith(".json"):
+            return "json"
         else:
             return "html"
 
@@ -455,6 +488,8 @@ class Dispatcher:
                         extractor = self.rss_extract
                     elif job.extract_ftype == "pdf":
                         extractor = self.pdf_extract
+                    elif job.extract_ftype == "json":
+                        extractor = self.json_extract
                     else:
                         raise Exception(f"Unsupported job ftype: {job.ftype}")
 
@@ -516,6 +551,41 @@ class Dispatcher:
                     )
                     extractions.append(Extraction(name=field.name, data=value.strip()))
                     break
+
+        return PageResult(url=url, fields=extractions)
+
+    def json_extract(self, job: Job, url: str) -> PageResult:
+        doc = visit_html(url=url, text=False)
+        if not doc:
+            return None
+
+        data = json.loads(doc)
+
+        extractions = []
+        for field in job.extract:
+            # Use the same logic as select_json to navigate the JSON structure
+            keys = field.selector.split('.')
+
+            result = data
+            for key in keys:
+                if isinstance(result, dict):
+                    result = result.get(key, [])
+                elif isinstance(result, list):
+                    # If we have a list, extract the key from each item
+                    result = [item.get(key) for item in result if isinstance(item, dict) and key in item]
+                else:
+                    result = []
+                    break
+
+            # Ensure result is a list
+            if not isinstance(result, list):
+                result = [result] if result else []
+
+            # Add each value as a separate extraction
+            for value in result:
+                if value:
+                    value_str = str(value) if not isinstance(value, str) else value
+                    extractions.append(Extraction(name=field.name, data=value_str.strip()))
 
         return PageResult(url=url, fields=extractions)
 

@@ -361,3 +361,93 @@ def test_dispatcher_must_contain_all(test_server, test_sources_yml):
     assert page_result.url == f"{test_server}/html/article_1.html"
     assert page_result.fields[0].name == "title"
     assert "Article 1" in page_result.fields[0].data
+
+
+def test_navigate_test_json_to_html(test_server, test_sources_yml):
+    """Test navigation for 'test_json_to_html' source (JSON -> HTML)."""
+    d = Navigate(path=test_sources_yml, source_name="test_json_to_html")
+    d.start()
+
+    job = d.jobs[0]
+    assert job.name == "test_json_to_html"
+    assert job.extract == [
+        Field(name="title", selector="/html/body/h1"),
+        Field(name="body", selector="//div[@id='article-body']"),
+    ]
+    assert job.nav == [
+        Nav(
+            url=f"{test_server}/json/test.json",
+            selector="items.link",
+            ftype="json",
+        ),
+    ]
+    # Should navigate to all 3 article HTML pages from the JSON
+    assert set(job.urls) == {
+        f"{test_server}/html/article_1.html",
+        f"{test_server}/html/article_2.html",
+        f"{test_server}/html/article_3.html",
+    }
+
+
+def test_dispatcher_test_json_to_html(test_server, test_sources_yml):
+    """Test dispatcher execution for 'test_json_to_html' source (JSON -> HTML)."""
+    d = Dispatcher(path=test_sources_yml, source_name="test_json_to_html")
+    d.execute_jobs()
+
+    source_result = d.results[0]
+    assert source_result.source_name == "test_json_to_html"
+    assert len(source_result.results) == 3
+
+    urls = {page_result.url for page_result in source_result.results}
+    assert urls == {
+        f"{test_server}/html/article_1.html",
+        f"{test_server}/html/article_2.html",
+        f"{test_server}/html/article_3.html",
+    }
+
+    # Verify each page has title and body extracted
+    for page_result in source_result.results:
+        assert len(page_result.fields) == 2
+        assert page_result.fields[0].name == "title"
+        assert len(page_result.fields[0].data) > 0
+        assert "Article" in page_result.fields[0].data
+        assert page_result.fields[1].name == "body"
+        assert len(page_result.fields[1].data) > 0
+
+
+def test_dispatcher_test_json_direct(test_server, test_sources_yml):
+    """Test dispatcher execution for 'test_json_direct' source (direct JSON extraction)."""
+    d = Dispatcher(path=test_sources_yml, source_name="test_json_direct")
+    d.execute_jobs()
+
+    source_result = d.results[0]
+    assert source_result.source_name == "test_json_direct"
+    assert len(source_result.results) == 1
+
+    page_result = source_result.results[0]
+    assert page_result.url == f"{test_server}/json/test.json"
+
+    # Should have 12 fields (3 items * 4 fields each: title, description, date, link)
+    assert len(page_result.fields) == 12
+
+    # Check that we have 3 of each field type
+    field_names = [field.name for field in page_result.fields]
+    assert field_names.count("title") == 3
+    assert field_names.count("description") == 3
+    assert field_names.count("date") == 3
+    assert field_names.count("link") == 3
+
+    # Check that title fields contain "Article"
+    titles = [field.data for field in page_result.fields if field.name == "title"]
+    for title in titles:
+        assert "Article" in title
+
+    # Check that date fields contain "2026"
+    dates = [field.data for field in page_result.fields if field.name == "date"]
+    for date in dates:
+        assert "2026" in date
+
+    # Check that link fields contain "/html/article"
+    links = [field.data for field in page_result.fields if field.name == "link"]
+    for link in links:
+        assert "/html/article" in link

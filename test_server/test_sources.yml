@@ -105,3 +105,30 @@ source:
       fields:
         - name: title
           selector: /html/body/h1
+
+  - name: test_json_to_html
+    start: http://localhost:8888/json/test.json
+    navigate:
+      - selector: items.link
+        ftype: json
+    extract:
+      ftype: html
+      fields:
+        - name: title
+          selector: /html/body/h1
+        - name: body
+          selector: //div[@id='article-body']
+
+  - name: test_json_direct
+    start: http://localhost:8888/json/test.json
+    extract:
+      ftype: json
+      fields:
+        - name: title
+          selector: items.title
+        - name: description
+          selector: items.description
+        - name: date
+          selector: items.date
+        - name: link
+          selector: items.link
