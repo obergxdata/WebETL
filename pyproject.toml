@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "x-webetl"
-version = "0.1.11"
+version = "0.1.13"
 description = "A flexible web content extraction, transformation, and loading (ETL) pipeline"
 readme = "README.md"
 requires-python = ">=3.11"
