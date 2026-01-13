@@ -5,9 +5,9 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import click
-from extract.dispatch import RunTracker, Dispatcher
-from transform.transform import Transform
-from load.load import Load
+from xwebetl.extract.dispatch import RunTracker, Dispatcher
+from xwebetl.transform.transform import Transform
+from xwebetl.load.load import Load
 
 logging.basicConfig(
     level=logging.INFO,

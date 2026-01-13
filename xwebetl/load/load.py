@@ -1,5 +1,5 @@
-from source.source_manager import Job
-from source.base_processor import BaseProcessor
+from xwebetl.source.source_manager import Job
+from xwebetl.source.base_processor import BaseProcessor
 import logging
 import xml.etree.ElementTree as ET
 from xml.dom import minidom

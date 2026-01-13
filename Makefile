@@ -27,7 +27,7 @@ install-dev:
 	pip install -e ".[dev]"
 
 test:
-	python -m pytest source/tests/test_source_manager.py extract/tests/test_dispatch.py transform/tests/test_transform.py load/tests/test_load.py
+	python -m pytest xwebetl/source/tests/test_source_manager.py xwebetl/extract/tests/test_dispatch.py xwebetl/transform/tests/test_transform.py xwebetl/load/tests/test_load.py
 
 test-server:
 	python -m test_server.server

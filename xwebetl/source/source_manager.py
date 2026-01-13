@@ -2,7 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from dataclasses import dataclass
 import yaml
-from source.data_manager import DataManager
+from xwebetl.source.data_manager import DataManager
 
 
 @dataclass

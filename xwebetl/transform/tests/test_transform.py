@@ -1,5 +1,5 @@
 from datetime import datetime
-from transform.transform import Transform
+from xwebetl.transform.transform import Transform
 from pathlib import Path
 import json
 

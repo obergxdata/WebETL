@@ -1,5 +1,5 @@
-from extract.dispatch import Navigate, Dispatcher
-from source.source_manager import Nav, Field
+from xwebetl.extract.dispatch import Navigate, Dispatcher
+from xwebetl.source.source_manager import Nav, Field
 import pytest
 
 

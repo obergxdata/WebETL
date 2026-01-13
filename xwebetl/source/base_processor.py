@@ -1,5 +1,5 @@
-from source.source_manager import Job, Source
-from source.data_manager import DataManager
+from xwebetl.source.source_manager import Job, Source
+from xwebetl.source.data_manager import DataManager
 import logging
 
 logger = logging.getLogger(__name__)

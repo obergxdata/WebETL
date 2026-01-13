@@ -90,9 +90,7 @@ webetl reset-tracking 2024-01-15                        # Reset specific date
 ### Using the Python API
 
 ```python
-from extract.dispatch import Dispatcher
-from transform.transform import Transform
-from load.load import Load
+from xwebetl import Dispatcher, Transform, Load
 
 # Extract data from sources
 dispatcher = Dispatcher(path="sources.yml", source_name="my_source")
@@ -123,9 +121,7 @@ Or create a simple automation script:
 ```python
 #!/usr/bin/env python3
 """Daily ETL automation script."""
-from extract.dispatch import Dispatcher
-from transform.transform import Transform
-from load.load import Load
+from xwebetl import Dispatcher, Transform, Load
 import logging
 
 logging.basicConfig(
@@ -319,7 +315,8 @@ WebETL automatically tracks every URL it fetches to prevent duplicate processing
 ### Extract Module
 
 ```python
-from extract import Dispatcher, RunTracker
+from xwebetl import Dispatcher
+from xwebetl.extract.dispatch import RunTracker
 
 # Extract data from sources
 dispatcher = Dispatcher(path="sources.yml", source_name="my_source")
@@ -338,7 +335,7 @@ tracker.has_been_fetched(url="https://example.com")
 tracker.get_latest_fetches(limit=100)
 
 # Advanced: Use Navigate for custom navigation logic
-from extract import Navigate
+from xwebetl.extract.dispatch import Navigate
 nav = Navigate(path="sources.yml", source_name="my_source")
 nav.start()  # Populates nav.jobs with URLs to extract
 # Access nav.jobs for custom processing
@@ -347,7 +344,7 @@ nav.start()  # Populates nav.jobs with URLs to extract
 ### Transform Module
 
 ```python
-from transform import Transform
+from xwebetl import Transform
 
 # Process all sources for today's date
 transform = Transform(path="sources.yml")
@@ -369,7 +366,7 @@ transform.process_jobs()
 ### Load Module
 
 ```python
-from load import Load
+from xwebetl import Load
 
 # Process all sources for today's date
 load = Load(path="sources.yml")
@@ -387,7 +384,7 @@ load.process_jobs()
 ### Source Management
 
 ```python
-from source import Source
+from xwebetl import Source
 
 # Load and generate jobs from config
 source = Source(path="sources.yml", source_name="my_source")

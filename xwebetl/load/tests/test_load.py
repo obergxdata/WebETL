@@ -1,6 +1,6 @@
 import pytest
-from load.load import Load
-from source.data_manager import DataManager
+from xwebetl.load.load import Load
+from xwebetl.source.data_manager import DataManager
 from datetime import datetime
 import xml.etree.ElementTree as ET
 

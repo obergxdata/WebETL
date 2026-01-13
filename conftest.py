@@ -63,7 +63,7 @@ def cleanup_generated_test_files():
     Removes all files starting with 'test_' prefix and test run records from database.
     """
     from datetime import datetime
-    from extract.dispatch import RunTracker
+    from xwebetl.extract.dispatch import RunTracker
 
     # Setup: nothing needed before test
     yield
@@ -105,7 +105,7 @@ def cleanup_generated_test_files():
         # Note: Job pickle files are no longer created (jobs loaded from YAML)
 
         # Remove test run records from database
-        from extract.dispatch import RunTracker
+        from xwebetl.extract.dispatch import RunTracker
         tracker = RunTracker()
         import sqlite3
         with sqlite3.connect(tracker.db_path) as conn:
@@ -122,7 +122,7 @@ def dispatch_all_sources(test_sources_yml):
     Fixture that runs the whole dispatch flow for all sources (no specific source_name).
     Returns a Dispatcher instance with all sources executed.
     """
-    from extract.dispatch import Dispatcher
+    from xwebetl.extract.dispatch import Dispatcher
 
     dispatcher = Dispatcher(path=test_sources_yml, source_name=None)
     dispatcher.execute_jobs()
@@ -136,8 +136,8 @@ def dispatch_transform_all_sources(test_sources_yml):
     Fixture that runs both dispatch and transform for all sources.
     Returns a tuple of (Dispatcher, Transform) instances.
     """
-    from extract.dispatch import Dispatcher
-    from transform.transform import Transform
+    from xwebetl.extract.dispatch import Dispatcher
+    from xwebetl.transform.transform import Transform
 
     # Run dispatch
     dispatcher = Dispatcher(path=test_sources_yml, source_name=None)

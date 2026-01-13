@@ -1,7 +1,7 @@
-from source.source_manager import Source, Nav, Job
-from source.data_manager import DataManager
-from extract.http import visit_html
-from extract.rss import visit_rss
+from xwebetl.source.source_manager import Source, Nav, Job
+from xwebetl.source.data_manager import DataManager
+from xwebetl.extract.http import visit_html
+from xwebetl.extract.rss import visit_rss
 from lxml import html as lxml_html
 from urllib.parse import urljoin, quote
 from concurrent.futures import ProcessPoolExecutor, as_completed

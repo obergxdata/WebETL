@@ -1,4 +1,4 @@
-from source.source_manager import Source, Nav, Field, Job
+from xwebetl.source.source_manager import Source, Nav, Field, Job
 
 
 def test_generate_jobs_test(test_sources_yml):
