@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "x-webetl"
-version = "0.1.13"
+name = "xwebetl"
+version = "0.1.0"
 description = "A flexible web content extraction, transformation, and loading (ETL) pipeline"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -41,10 +41,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/obergxdata/x-webetl"
-Documentation = "https://github.com/obergxdata/x-webetl#readme"
-Repository = "https://github.com/obergxdata/x-webetl"
-Issues = "https://github.com/obergxdata/x-webetl/issues"
+Homepage = "https://github.com/obergxdata/WebETL"
+Documentation = "https://github.com/obergxdata/WebETL#readme"
+Repository = "https://github.com/obergxdata/WebETL"
+Issues = "https://github.com/obergxdata/WebETL/issues"
 
 [project.scripts]
 webetl = "cli.main:main"

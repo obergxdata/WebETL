@@ -24,8 +24,8 @@ A flexible web content extraction, transformation, and loading (ETL) pipeline fo
 
 ```bash
 # Clone the repository
-git clone https://github.com/obergxdata/x-webetl
-cd webetl
+git clone https://github.com/obergxdata/WebETL
+cd WebETL
 
 # Install in editable mode
 make install-dev
@@ -37,7 +37,7 @@ pip install -e ".[dev]"
 ### From PyPI
 
 ```bash
-pip install x-webetl
+pip install xwebetl
 ```
 
 ## Quick Start
@@ -650,5 +650,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-- Issues: https://github.com/obergxdata/x-webetl/issues
-- Documentation: https://github.com/obergxdata/x-webetl#readme
+- Issues: https://github.com/obergxdata/WebETL/issues
+- Documentation: https://github.com/obergxdata/WebETL#readme
