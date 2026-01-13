@@ -22,6 +22,7 @@ class Job:
     urls: list[str] | None = None
     transform: list[dict] | None = None
     load: dict | None = None
+    no_track: bool = False
 
 
 @dataclass
@@ -105,6 +106,7 @@ class Source:
                     start=source_conf["start"],
                     transform=source_conf.get("transform", []),
                     load=source_conf.get("load", None),
+                    no_track=source_conf.get("no_track", False),
                 )
             )
 

@@ -474,7 +474,10 @@ class Dispatcher:
                 continue
 
             # Filter out URLs that have already been fetched by this source (unless no_track is enabled)
-            if self.no_track:
+            # Job-level no_track overrides dispatcher-level no_track
+            should_skip_tracking = self.no_track or getattr(job, 'no_track', False)
+
+            if should_skip_tracking:
                 unfetched_urls = job.urls
             else:
                 unfetched_urls = self.run_tracker.filter_unfetched_urls(
@@ -513,7 +516,7 @@ class Dispatcher:
                     if result:
                         page_results.append(result)
                         # Mark this URL as fetched (unless no_track is enabled)
-                        if not self.no_track:
+                        if not should_skip_tracking:
                             self.run_tracker.add_url(result.url, job.name)
 
             logger.info(f"Collected {len(page_results)} page results for {job.name}")

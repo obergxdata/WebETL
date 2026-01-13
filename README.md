@@ -162,6 +162,7 @@ WebETL uses YAML configuration files to define data sources. Here's an example:
 source:
   - name: tech_blog
     start: https://blog.example.com/feed.xml
+    no_track: true  # Optional: disable URL tracking for this source (default: false)
 
     # Multi-step navigation
     navigate:
@@ -208,6 +209,21 @@ source:
           - field: summary
             name: summary
 ```
+
+### Source Configuration Options
+
+Each source in your configuration supports these options:
+
+- **`name`** (required): Unique identifier for this source
+- **`start`** (required): Starting URL for the extraction
+- **`no_track`** (optional): Set to `true` to disable URL tracking for this source (default: `false`)
+  - When enabled, URLs will always be re-fetched, ignoring fetch history
+  - Useful for sources that need to be checked on every run
+  - Can be combined with CLI `--no-track` flag (either setting will disable tracking)
+- **`navigate`** (optional): Multi-step navigation rules
+- **`extract`** (required): Fields to extract from final pages
+- **`transform`** (optional): LLM transformation rules
+- **`load`** (optional): Output format configuration
 
 ## Architecture
 
@@ -618,6 +634,43 @@ source:
         - name: title
           selector: //h1[@class='main-title']/text()|//h1[@class='alt-title']/text()
 ```
+
+### Disabling URL Tracking Per Source
+
+By default, WebETL tracks all fetched URLs to prevent duplicate processing. You can disable this per source using `no_track: true`:
+
+```yaml
+source:
+  # Regular source with tracking enabled (default)
+  - name: weekly_newsletter
+    start: https://example.com/newsletter/feed.xml
+    extract:
+      ftype: rss
+      fields:
+        - name: title
+          selector: title
+
+  # Source that always re-fetches URLs (no tracking)
+  - name: live_dashboard
+    start: https://example.com/dashboard/feed.xml
+    no_track: true  # Always fetch, ignore history
+    extract:
+      ftype: rss
+      fields:
+        - name: status
+          selector: title
+```
+
+**When to use `no_track: true`:**
+- Sources that update frequently and should be checked every run
+- Live dashboards or status pages
+- Sources where you always want fresh data regardless of previous fetches
+- Testing and debugging specific sources
+
+**Tracking behavior:**
+- CLI flag `--no-track`: Disables tracking for ALL sources in the run
+- Config `no_track: true`: Disables tracking ONLY for that specific source
+- If either is set to `true`, tracking is disabled
 
 ## Requirements
 

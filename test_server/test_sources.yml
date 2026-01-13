@@ -144,3 +144,15 @@ source:
       fields:
         - name: title
           selector: /html/body/h1
+
+  - name: test_no_track
+    start: http://localhost:8888/html/home.html
+    no_track: true
+    navigate:
+      - selector: //ul/li/a/@href
+        ftype: html
+    extract:
+      ftype: html
+      fields:
+        - name: title
+          selector: /html/body/h1
