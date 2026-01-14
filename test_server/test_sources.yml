@@ -156,3 +156,33 @@ source:
       fields:
         - name: title
           selector: /html/body/h1
+
+  - name: test_skip_if_condition
+    start: http://localhost:8888/rss/feed.xml
+    extract:
+      ftype: mixed
+      fields:
+        - name: title
+          selector: title
+        - name: description
+          selector: description
+    transform:
+      LLM:
+      - name: relevance_check
+        input: [title]
+        output: relevance
+        model: gpt-4
+        prompt: Is this article about quantum physics and advanced mathematics? If yes, reply with exactly "YES", otherwise reply with "NO".
+      - name: sentiment
+        input: [description]
+        output: description_sentiment
+        model: gpt-4
+        prompt: Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral.
+        skip_if:
+          field: relevance
+          not_equals: "YES"
+      - name: detailed_analysis
+        input: [title, description]
+        output: detailed_summary
+        model: gpt-4
+        prompt: Provide a detailed analysis of this article.

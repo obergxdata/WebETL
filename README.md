@@ -183,16 +183,19 @@ source:
     # Transform with LLM (optional)
     transform:
       LLM:
+      - name: check_relevance
+        input: [content]
+        output: is_relevant
+        model: gpt-4
+        prompt: "Is this article about technology? Reply with YES or NO"
       - name: summarize
         input: [content]
         output: summary
         model: gpt-4
         prompt: "Summarize this article in 2-3 sentences"
-      - name: extract_topics
-        input: [content]
-        output: topics
-        model: gpt-4
-        prompt: "Extract 3-5 main topics from this article as a comma-separated list"
+        skip_if:
+          field: is_relevant
+          not_equals: "YES"
 
     # Output format (optional)
     load:

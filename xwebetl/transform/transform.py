@@ -101,6 +101,22 @@ class Transform(BaseProcessor):
 
         # Apply each LLM step sequentially for this entry
         for llm_step in llm_steps:
+            # Check skip_if condition before processing
+            if "skip_if" in llm_step:
+                skip_condition = llm_step["skip_if"]
+                field = skip_condition.get("field")
+                not_equals = skip_condition.get("not_equals")
+
+                if field and not_equals:
+                    field_value = processed_entry.get(field)
+                    if field_value != not_equals:
+                        logger.info(
+                            f"Skipping step '{llm_step['name']}' and all subsequent steps: "
+                            f"field '{field}' = '{field_value}' (expected '{not_equals}')"
+                        )
+                        # Stop processing all subsequent steps
+                        break
+
             processed_entry = self._process_llm_step(processed_entry, llm_step, client)
 
         return url, entry_index, processed_entry
