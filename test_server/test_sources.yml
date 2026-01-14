@@ -173,14 +173,14 @@ source:
         output: relevance
         model: gpt-4
         prompt: Is this article about quantum physics and advanced mathematics? If yes, reply with exactly "YES", otherwise reply with "NO".
+        break_if:
+          field: relevance
+          not_equals: "YES"
       - name: sentiment
         input: [description]
         output: description_sentiment
         model: gpt-4
         prompt: Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral.
-        skip_if:
-          field: relevance
-          not_equals: "YES"
       - name: detailed_analysis
         input: [title, description]
         output: detailed_summary

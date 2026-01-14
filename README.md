@@ -188,14 +188,14 @@ source:
         output: is_relevant
         model: gpt-4
         prompt: "Is this article about technology? Reply with YES or NO"
+        break_if:  # Stops remaining steps for this entry only
+          field: is_relevant
+          not_equals: "YES"
       - name: summarize
         input: [content]
         output: summary
         model: gpt-4
         prompt: "Summarize this article in 2-3 sentences"
-        skip_if:
-          field: is_relevant
-          not_equals: "YES"
 
     # Output format (optional)
     load:

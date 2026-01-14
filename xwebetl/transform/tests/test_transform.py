@@ -25,8 +25,8 @@ def test_transform(test_sources_yml):
     assert "title_sentiment" in first_entry
 
 
-def test_skip_if_condition(test_sources_yml):
-    """Test that skip_if conditions stop subsequent steps."""
+def test_break_if_condition(test_sources_yml):
+    """Test that break_if conditions stop subsequent steps."""
     dispatcher = Dispatcher(path=test_sources_yml, source_name="test_skip_if_condition")
     dispatcher.execute_jobs()
     dispatcher.save_results()
